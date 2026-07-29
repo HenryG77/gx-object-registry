@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: gx_postgres
+    environment:
+      POSTGRES_DB: gx_object_registry
+      POSTGRES_USER: gxuser
+      POSTGRES_PASSWORD: gxpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gxuser -d gx_object_registry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gx_network
+
+  # API FastAPI
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gx_api
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://gxuser:gxpassword@postgres:5432/gx_object_registry
+      APP_ENV: development
+      DEBUG: "true"
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - gx_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  gx_network:
+    driver: bridge
