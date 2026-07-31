@@ -1,6 +1,8 @@
 """
 Configuración de la conexión a la base de datos con SQLAlchemy.
 """
+from pathlib import Path
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncSession,
@@ -8,6 +10,11 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import NullPool
 from typing import AsyncGenerator
+
+# Asegurar que el .env esté cargado ANTES de importar settings
+root_dir = Path(__file__).parent.parent.parent
+env_path = root_dir / ".env"
+load_dotenv(env_path, override=True)
 
 from src.shared.config.settings import settings
 

@@ -27,12 +27,13 @@ class CreateObjectType:
         """
         self.repository = repository
 
-    async def execute(self, name: str) -> ObjectType:
+    async def execute(self, name: str, id: int = None) -> ObjectType:
         """
         Ejecuta el caso de uso.
 
         Args:
             name: Nombre del tipo de objeto a crear
+            id: ID opcional (si no se especifica, se autoincrementa)
 
         Returns:
             Tipo de objeto creado
@@ -54,7 +55,7 @@ class CreateObjectType:
             raise ObjectTypeAlreadyExistsError(normalized_name)
 
         # Crear entidad de dominio (se valida automáticamente)
-        object_type = ObjectType.create(normalized_name)
+        object_type = ObjectType.create(normalized_name, id=id)
 
         # Persistir
         created = await self.repository.create(object_type)

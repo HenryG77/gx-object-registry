@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from typing import Optional
-from uuid import UUID, uuid4
 
 
 class SourceType(str, Enum):
@@ -28,7 +27,7 @@ class GeneXusObject:
     - La combinación (name, object_type_id) debe ser única
 
     Attributes:
-        id: Identificador único
+        id: Identificador único (autoincremental)
         name: Nombre técnico del objeto (ej: AhrPr001)
         description: Descripción funcional del objeto (opcional)
         object_type_id: ID del tipo de objeto (FK a object_types)
@@ -37,10 +36,10 @@ class GeneXusObject:
         updated_at: Fecha de última actualización
     """
 
-    id: UUID
+    id: Optional[int]
     name: str
     description: Optional[str]
-    object_type_id: UUID
+    object_type_id: int
     source_type: SourceType
     created_at: datetime
     updated_at: datetime
@@ -67,8 +66,9 @@ class GeneXusObject:
     @staticmethod
     def create_manual(
         name: str,
-        object_type_id: UUID,
+        object_type_id: int,
         description: Optional[str] = None,
+        id: Optional[int] = None,
     ) -> "GeneXusObject":
         """
         Factory method para crear un objeto manualmente.
@@ -77,6 +77,7 @@ class GeneXusObject:
             name: Nombre del objeto
             object_type_id: ID del tipo de objeto
             description: Descripción opcional
+            id: ID opcional (si no se especifica, se autoincrementa)
 
         Returns:
             Nueva instancia de GeneXusObject con source_type=MANUAL
@@ -84,8 +85,14 @@ class GeneXusObject:
         Example:
             >>> obj = GeneXusObject.create_manual(
             ...     "AhrPr001",
-            ...     UUID("..."),
+            ...     1,
             ...     "Recupera Tasa de Interés"
+            ... )
+            >>> obj_with_id = GeneXusObject.create_manual(
+            ...     "AhrPr002",
+            ...     1,
+            ...     "Otro objeto",
+            ...     id=0
             ... )
         """
         now = datetime.utcnow()
@@ -93,7 +100,7 @@ class GeneXusObject:
         normalized_description = description.strip() if description and description.strip() else None
 
         return GeneXusObject(
-            id=uuid4(),
+            id=id,  # Puede ser None o un valor específico
             name=normalized_name,
             description=normalized_description,
             object_type_id=object_type_id,
@@ -105,7 +112,7 @@ class GeneXusObject:
     @staticmethod
     def create_from_csv(
         name: str,
-        object_type_id: UUID,
+        object_type_id: int,
         description: Optional[str] = None,
     ) -> "GeneXusObject":
         """
@@ -124,7 +131,7 @@ class GeneXusObject:
         normalized_description = description.strip() if description and description.strip() else None
 
         return GeneXusObject(
-            id=uuid4(),
+            id=None,  # El ID será asignado por la BD
             name=normalized_name,
             description=normalized_description,
             object_type_id=object_type_id,
@@ -148,7 +155,7 @@ class GeneXusObject:
         self,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        object_type_id: Optional[UUID] = None,
+        object_type_id: Optional[int] = None,
     ) -> None:
         """
         Actualiza múltiples campos del objeto.

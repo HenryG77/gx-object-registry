@@ -2,7 +2,6 @@
 Implementación del repositorio de ObjectType usando SQLAlchemy.
 """
 from typing import Optional, List, Tuple
-from uuid import UUID
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -74,12 +73,19 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
         """Crea un nuevo tipo de objeto."""
         try:
             model = self._to_model(object_type)
+
+            # Si no se proporciona ID, obtener el siguiente de la secuencia
+            if model.id is None:
+                from sqlalchemy import text
+                result = await self.session.execute(text("SELECT nextval('object_types_id_seq')"))
+                model.id = result.scalar()
+
             self.session.add(model)
             await self.session.flush()
 
             logger.info(
                 "ObjectType created",
-                object_type_id=str(object_type.id),
+                object_type_id=str(model.id),
                 name=object_type.name,
             )
 
@@ -98,7 +104,7 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
             logger.error("Database error creating ObjectType", error=str(e))
             raise DatabaseError(str(e))
 
-    async def find_by_id(self, object_type_id: UUID) -> Optional[ObjectType]:
+    async def find_by_id(self, object_type_id: int) -> Optional[ObjectType]:
         """Busca un tipo por ID."""
         try:
             stmt = select(ObjectTypeModel).where(ObjectTypeModel.id == object_type_id)
@@ -138,20 +144,36 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
         return result is not None
 
     async def list_all(
-        self, page: int = 1, page_size: int = 50
+        self, page: int = 1, page_size: int = 50, sort_by: str = "id", sort_order: str = "asc"
     ) -> Tuple[List[ObjectType], int]:
-        """Lista tipos con paginación."""
+        """Lista tipos con paginación y ordenamiento."""
         try:
             # Contar total
             count_stmt = select(func.count()).select_from(ObjectTypeModel)
             total_result = await self.session.execute(count_stmt)
             total = total_result.scalar()
 
+            # Determinar campo de ordenamiento
+            if sort_by == "name":
+                sort_column = ObjectTypeModel.name
+            elif sort_by == "created_at":
+                sort_column = ObjectTypeModel.created_at
+            elif sort_by == "updated_at":
+                sort_column = ObjectTypeModel.updated_at
+            else:  # default: id
+                sort_column = ObjectTypeModel.id
+
+            # Aplicar dirección de ordenamiento
+            if sort_order == "desc":
+                sort_column = sort_column.desc()
+            else:
+                sort_column = sort_column.asc()
+
             # Obtener página
             offset = (page - 1) * page_size
             stmt = (
                 select(ObjectTypeModel)
-                .order_by(ObjectTypeModel.name)
+                .order_by(sort_column)
                 .limit(page_size)
                 .offset(offset)
             )
@@ -207,7 +229,7 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
             logger.error("Database error updating ObjectType", error=str(e))
             raise DatabaseError(str(e))
 
-    async def delete(self, object_type_id: UUID) -> None:
+    async def delete(self, object_type_id: int) -> None:
         """Elimina un tipo de objeto."""
         try:
             # Verificar que existe
@@ -234,12 +256,12 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
             logger.error("Database error deleting ObjectType", error=str(e))
             raise DatabaseError(str(e))
 
-    async def has_related_objects(self, object_type_id: UUID) -> bool:
+    async def has_related_objects(self, object_type_id: int) -> bool:
         """Verifica si tiene objetos relacionados."""
         count = await self.count_related_objects(object_type_id)
         return count > 0
 
-    async def count_related_objects(self, object_type_id: UUID) -> int:
+    async def count_related_objects(self, object_type_id: int) -> int:
         """
         Cuenta objetos relacionados.
 

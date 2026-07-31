@@ -69,7 +69,7 @@ class ImportCSV:
                 return result
 
             # 2. Cargar tipos de objeto para mapping
-            object_types = await self.object_type_repository.list_all()
+            object_types, _ = await self.object_type_repository.list_all(page_size=10000)
             if not object_types:
                 logger.error("No object types found in database")
                 result.add_error(
@@ -84,7 +84,11 @@ class ImportCSV:
                 mappings=type_mapper.get_available_mappings(),
             )
 
-            # 3. Procesar cada fila
+            # 3. Eliminar TODOS los objetos existentes antes de importar
+            deleted_count = await self.genexus_object_repository.delete_all()
+            logger.info("All existing objects deleted before import", count=deleted_count)
+
+            # 4. Procesar cada fila
             for row in rows:
                 await self._process_row(row, type_mapper, result)
 
@@ -157,18 +161,8 @@ class ImportCSV:
                 )
                 return
 
-            # Verificar si el objeto ya existe
-            existing_object = await self.genexus_object_repository.find_by_name_and_type(
-                name=row.name,
-                object_type_id=object_type_id,
-            )
-
-            if existing_object:
-                # Actualizar objeto existente
-                await self._update_object(existing_object, row, result)
-            else:
-                # Crear nuevo objeto
-                await self._create_object(row, object_type_id, result)
+            # Crear nuevo objeto (todos son nuevos porque eliminamos todo antes)
+            await self._create_object(row, object_type_id, result)
 
         except Exception as e:
             logger.error(

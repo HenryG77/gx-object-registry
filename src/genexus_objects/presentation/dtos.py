@@ -5,7 +5,6 @@ Define los modelos de Request y Response para la API REST.
 """
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from uuid import UUID
 from typing import List, Optional
 from enum import Enum
 
@@ -18,6 +17,13 @@ class SourceTypeDTO(str, Enum):
 
 class CreateGeneXusObjectRequest(BaseModel):
     """Request para crear un objeto GeneXus."""
+
+    id: Optional[int] = Field(
+        None,
+        ge=0,
+        description="ID opcional del objeto (si no se especifica, se autoincrementa)",
+        examples=[0, 1, 2],
+    )
 
     name: str = Field(
         ...,
@@ -33,7 +39,7 @@ class CreateGeneXusObjectRequest(BaseModel):
         examples=["Recupera Tasa de Interés", "Tipos de Cuentas"],
     )
 
-    object_type_id: UUID = Field(
+    object_type_id: int = Field(
         ...,
         description="ID del tipo de objeto",
     )
@@ -71,7 +77,7 @@ class UpdateGeneXusObjectRequest(BaseModel):
         description="Nueva descripción del objeto",
     )
 
-    object_type_id: Optional[UUID] = Field(
+    object_type_id: Optional[int] = Field(
         None,
         description="Nuevo ID del tipo de objeto",
     )
@@ -99,10 +105,10 @@ class UpdateGeneXusObjectRequest(BaseModel):
 class GeneXusObjectResponse(BaseModel):
     """Response de un objeto GeneXus."""
 
-    id: UUID = Field(..., description="ID único del objeto")
+    id: int = Field(..., description="ID único del objeto (autoincremental)")
     name: str = Field(..., description="Nombre técnico del objeto")
     description: Optional[str] = Field(None, description="Descripción funcional")
-    object_type_id: UUID = Field(..., description="ID del tipo de objeto")
+    object_type_id: int = Field(..., description="ID del tipo de objeto")
     source_type: SourceTypeDTO = Field(..., description="Origen del registro")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
@@ -126,7 +132,7 @@ class SearchGeneXusObjectsRequest(BaseModel):
         description="Filtro exacto por nombre",
     )
 
-    object_type_id: Optional[UUID] = Field(
+    object_type_id: Optional[int] = Field(
         None,
         description="Filtro por tipo de objeto",
     )
@@ -150,9 +156,9 @@ class SearchGeneXusObjectsRequest(BaseModel):
     )
 
     sort_by: str = Field(
-        default="name",
+        default="id",
         description="Campo por el que ordenar",
-        pattern="^(name|created_at|updated_at)$",
+        pattern="^(id|name|created_at|updated_at|object_type_name|source_type)$",
     )
 
     sort_order: str = Field(

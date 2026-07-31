@@ -5,12 +5,18 @@ Define los modelos de Request y Response para la API REST.
 """
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from uuid import UUID
-from typing import List
+from typing import List, Optional
 
 
 class CreateObjectTypeRequest(BaseModel):
     """Request para crear un tipo de objeto."""
+
+    id: Optional[int] = Field(
+        None,
+        ge=0,
+        description="ID opcional del tipo de objeto (si no se especifica, se autoincrementa)",
+        examples=[0, 1, 2],
+    )
 
     name: str = Field(
         ...,
@@ -33,6 +39,13 @@ class CreateObjectTypeRequest(BaseModel):
 class UpdateObjectTypeRequest(BaseModel):
     """Request para actualizar un tipo de objeto."""
 
+    new_id: Optional[int] = Field(
+        None,
+        ge=0,
+        description="Nuevo ID del tipo de objeto (opcional)",
+        examples=[0, 1, 2],
+    )
+
     name: str = Field(
         ...,
         min_length=1,
@@ -54,7 +67,7 @@ class UpdateObjectTypeRequest(BaseModel):
 class ObjectTypeResponse(BaseModel):
     """Response de un tipo de objeto."""
 
-    id: UUID = Field(..., description="ID único del tipo de objeto")
+    id: int = Field(..., description="ID único del tipo de objeto (autoincremental desde 0)")
     name: str = Field(..., description="Nombre del tipo")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")

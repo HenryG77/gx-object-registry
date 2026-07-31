@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}Objetos GeneXus - GeneXus Object Registry{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-box-seam"></i> Objetos GeneXus</h1>
+        <p>Gestiona los objetos GeneXus del sistema</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="bi bi-plus-circle"></i> Crear Objeto
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-funnel"></i> Filtros de Búsqueda
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="filterName" class="form-label">Nombre</label>
+                <input type="text" class="form-control" id="filterName" placeholder="Filtrar por nombre...">
+            </div>
+            <div class="col-md-3">
+                <label for="filterDescription" class="form-label">Descripción</label>
+                <input type="text" class="form-control" id="filterDescription" placeholder="Filtrar por descripción...">
+            </div>
+            <div class="col-md-3">
+                <label for="filterType" class="form-label">Tipo de Objeto</label>
+                <select class="form-select" id="filterType">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterSource" class="form-label">Origen</label>
+                <select class="form-select" id="filterSource">
+                    <option value="">Todos</option>
+                    <option value="MANUAL">Manual</option>
+                    <option value="CSV">CSV</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list"></i> Listado de Objetos</span>
+        <div>
+            <span class="badge bg-secondary me-2">Total: <span id="total-count">0</span></span>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadObjects()">
+                <i class="bi bi-arrow-clockwise"></i> Actualizar
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+
+        <div id="error-container" class="d-none"></div>
+
+        <div id="table-container" class="table-responsive d-none">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="cursor: pointer;" onclick="sortTable('id')">
+                            ID <span id="sort-id" class="sort-indicator">▼</span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('name')">
+                            Nombre <span id="sort-name" class="sort-indicator"></span>
+                        </th>
+                        <th>Descripción</th>
+                        <th style="cursor: pointer;" onclick="sortTable('object_type_name')">
+                            Tipo <span id="sort-object_type_name" class="sort-indicator"></span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('source_type')">
+                            Origen <span id="sort-source_type" class="sort-indicator"></span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('created_at')">
+                            Fecha Creación <span id="sort-created_at" class="sort-indicator"></span>
+                        </th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="objects-tbody">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination-container" class="d-none mt-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0" id="pagination">
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Crear Objeto -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Objeto GeneXus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="createName" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="createName" required
+                               placeholder="Ej: AhrPr001, AhrTn001">
+                        <div class="form-text">Nombre técnico del objeto GeneXus</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="createDescription" rows="3"
+                                  placeholder="Descripción funcional del objeto"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createType" class="form-label">Tipo de Objeto *</label>
+                        <select class="form-select" id="createType" required>
+                            <option value="">Seleccione un tipo...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Crear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Objeto -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Objeto GeneXus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editType" class="form-label">Tipo de Objeto *</label>
+                        <select class="form-select" id="editType" required>
+                            <option value="">Seleccione un tipo...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .sort-indicator {
+        font-size: 0.75em;
+        color: #6c757d;
+        margin-left: 4px;
+    }
+    th[style*="cursor: pointer"]:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+</style>
+<script>
+    let currentPage = 1;
+    const pageSize = 20;
+    let objectTypes = [];
+    let filters = {
+        name: '',
+        description: '',
+        type: '',
+        source: ''
+    };
+    let sortColumn = 'id';
+    let sortDirection = 'asc';
+    let filterTimeout = null;
+
+    // Cargar tipos de objeto
+    async function loadObjectTypes() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/object-types?page_size=1000&sort_by=id&sort_order=asc`);
+            if (!response.ok) {
+                console.error('Error loading object types:', response.status);
+                objectTypes = [];
+                return;
+            }
+            const data = await response.json();
+            objectTypes = data.items || [];
+
+            // Poblar selectores
+            const selects = ['filterType', 'createType', 'editType'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const isFilter = selectId === 'filterType';
+
+                if (!isFilter) select.innerHTML = '<option value="">Seleccione un tipo...</option>';
+
+                objectTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name;
+                    select.appendChild(option);
+                });
+            });
+        } catch (error) {
+            console.error('Error cargando tipos:', error);
+        }
+    }
+
+    // Aplicar filtros (con debounce para inputs de texto)
+    function applyFilters() {
+        filters.name = document.getElementById('filterName').value.trim();
+        filters.description = document.getElementById('filterDescription').value.trim();
+        filters.type = document.getElementById('filterType').value;
+        filters.source = document.getElementById('filterSource').value;
+        currentPage = 1; // Resetear a página 1 cuando se aplican filtros
+        loadObjects(1);
+    }
+
+    // Aplicar filtros con debounce (para inputs de texto)
+    function applyFiltersDebounced() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(() => {
+            applyFilters();
+        }, 500); // Esperar 500ms después de que el usuario deja de escribir
+    }
+
+    // Cargar objetos
+    async function loadObjects(page = 1) {
+        currentPage = page;
+        const loading = document.getElementById('loading');
+        const errorContainer = document.getElementById('error-container');
+        const tableContainer = document.getElementById('table-container');
+        const paginationContainer = document.getElementById('pagination-container');
+
+        loading.classList.remove('d-none');
+        errorContainer.classList.add('d-none');
+        tableContainer.classList.add('d-none');
+        paginationContainer.classList.add('d-none');
+
+        try {
+            let url = `${API_BASE_URL}/objects?page=${page}&page_size=${pageSize}&sort_by=${sortColumn}&sort_order=${sortDirection}`;
+            if (filters.name) url += `&name=${encodeURIComponent(filters.name)}`;
+            if (filters.description) url += `&description=${encodeURIComponent(filters.description)}`;
+            if (filters.type) url += `&object_type_id=${filters.type}`;
+            if (filters.source) url += `&source_type=${filters.source}`;
+
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error('Error al cargar los objetos');
+            }
+
+            const data = await response.json();
+            document.getElementById('total-count').textContent = data.total;
+            renderTable(data.items);
+            renderPagination(data.page, data.total_pages);
+
+            loading.classList.add('d-none');
+            tableContainer.classList.remove('d-none');
+            if (data.total_pages > 1) {
+                paginationContainer.classList.remove('d-none');
+            }
+        } catch (error) {
+            loading.classList.add('d-none');
+            errorContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> ${error.message}
+                </div>
+            `;
+            errorContainer.classList.remove('d-none');
+        }
+    }
+
+    // Ordenar tabla
+    function sortTable(column) {
+        if (sortColumn === column) {
+            // Cambiar dirección si es la misma columna
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            // Nueva columna, ordenar ascendente por defecto
+            sortColumn = column;
+            sortDirection = 'asc';
+        }
+
+        // Actualizar indicadores visuales
+        updateSortIndicators();
+
+        // Recargar la página actual con el nuevo orden
+        loadObjects(currentPage);
+    }
+
+    // Actualizar indicadores de ordenamiento
+    function updateSortIndicators() {
+        // Limpiar todos los indicadores
+        document.querySelectorAll('.sort-indicator').forEach(el => {
+            el.textContent = '';
+        });
+
+        // Mostrar indicador en la columna activa
+        const indicator = document.getElementById(`sort-${sortColumn}`);
+        if (indicator) {
+            indicator.textContent = sortDirection === 'asc' ? '▼' : '▲';
+        }
+    }
+
+    // Renderizar tabla
+    function renderTable(objects) {
+        const tbody = document.getElementById('objects-tbody');
+        tbody.innerHTML = '';
+
+        if (objects.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        No hay objetos registrados
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Los objetos ya vienen ordenados del backend
+        objects.forEach(obj => {
+            const row = document.createElement('tr');
+            const sourceBadge = obj.source_type === 'MANUAL'
+                ? '<span class="badge bg-primary">Manual</span>'
+                : '<span class="badge bg-info">CSV</span>';
+
+            row.innerHTML = `
+                <td><span class="badge bg-secondary">${obj.id}</span></td>
+                <td><strong>${escapeHtml(obj.name)}</strong></td>
+                <td>${obj.description ? escapeHtml(obj.description) : '<em class="text-muted">Sin descripción</em>'}</td>
+                <td><span class="badge bg-secondary">${escapeHtml(obj.object_type_name || 'N/A')}</span></td>
+                <td>${sourceBadge}</td>
+                <td>${formatDate(obj.created_at)}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick='editObject(${JSON.stringify(obj)})'>
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteObject('${obj.id}', '${escapeHtml(obj.name)}')">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Actualizar indicadores
+        updateSortIndicators();
+    }
+
+    // Renderizar paginación
+    function renderPagination(page, totalPages) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        // Mostrar máximo 7 páginas
+        let start = Math.max(1, page - 3);
+        let end = Math.min(totalPages, start + 6);
+
+        if (end - start < 6) {
+            start = Math.max(1, end - 6);
+        }
+
+        if (page > 1) {
+            pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadObjects(${page - 1}); return false;">«</a></li>`;
+        }
+
+        for (let i = start; i <= end; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === page ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="loadObjects(${i}); return false;">${i}</a>`;
+            pagination.appendChild(li);
+        }
+
+        if (page < totalPages) {
+            pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadObjects(${page + 1}); return false;">»</a></li>`;
+        }
+    }
+
+    // Crear objeto
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('createName').value.trim(),
+            description: document.getElementById('createDescription').value.trim() || null,
+            object_type_id: document.getElementById('createType').value
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/objects`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error al crear el objeto');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+            document.getElementById('createForm').reset();
+            showAlert('Objeto creado exitosamente', 'success');
+            loadObjects(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    });
+
+    // Editar objeto
+    function editObject(obj) {
+        document.getElementById('editId').value = obj.id;
+        document.getElementById('editName').value = obj.name;
+        document.getElementById('editDescription').value = obj.description || '';
+        document.getElementById('editType').value = obj.object_type_id;
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editId').value;
+        const data = {
+            name: document.getElementById('editName').value.trim(),
+            description: document.getElementById('editDescription').value.trim() || null,
+            object_type_id: document.getElementById('editType').value
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/objects/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error al actualizar el objeto');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            showAlert('Objeto actualizado exitosamente', 'success');
+            loadObjects(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    });
+
+    // Eliminar objeto
+    async function deleteObject(id, name) {
+        if (!confirm(`¿Está seguro de eliminar el objeto "${name}"?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/objects/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error al eliminar el objeto');
+            }
+
+            showAlert('Objeto eliminado exitosamente', 'success');
+            loadObjects(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    }
+
+    // Helper para escapar HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Cargar al iniciar
+    updateSortIndicators();
+    loadObjectTypes().then(() => {
+        loadObjects();
+
+        // Abrir modal automáticamente si viene de acciones rápidas
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'create') {
+            // Esperar a que la página esté completamente cargada
+            setTimeout(() => {
+                const createModal = new bootstrap.Modal(document.getElementById('createModal'));
+                createModal.show();
+                // Limpiar el parámetro de la URL sin recargar la página
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, newUrl);
+            }, 300);
+        }
+    });
+
+    // Event listeners para filtros automáticos
+    document.getElementById('filterName').addEventListener('input', applyFiltersDebounced);
+    document.getElementById('filterDescription').addEventListener('input', applyFiltersDebounced);
+    document.getElementById('filterType').addEventListener('change', applyFilters);
+    document.getElementById('filterSource').addEventListener('change', applyFilters);
+
+    // También permitir Enter para aplicar inmediatamente
+    document.getElementById('filterName').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(filterTimeout);
+            applyFilters();
+        }
+    });
+    document.getElementById('filterDescription').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            clearTimeout(filterTimeout);
+            applyFilters();
+        }
+    });
+</script>
+{% endblock %}

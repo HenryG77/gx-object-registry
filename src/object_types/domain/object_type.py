@@ -5,7 +5,7 @@ Representa un tipo de objeto GeneXus (PROCEDURE, TRANSACTION, etc.)
 """
 from dataclasses import dataclass
 from datetime import datetime
-from uuid import UUID, uuid4
+from typing import Optional
 
 
 @dataclass
@@ -19,13 +19,13 @@ class ObjectType:
     - name debe ser único (case-insensitive)
 
     Attributes:
-        id: Identificador único
+        id: Identificador único (autoincremental)
         name: Nombre del tipo (ej: PROCEDURE, TRANSACTION)
         created_at: Fecha de creación
         updated_at: Fecha de última actualización
     """
 
-    id: UUID
+    id: Optional[int]
     name: str
     created_at: datetime
     updated_at: datetime
@@ -50,24 +50,26 @@ class ObjectType:
             raise ValueError("El nombre del tipo no puede superar 100 caracteres")
 
     @staticmethod
-    def create(name: str) -> "ObjectType":
+    def create(name: str, id: Optional[int] = None) -> "ObjectType":
         """
         Factory method para crear un nuevo tipo de objeto.
 
         Args:
             name: Nombre del tipo
+            id: ID opcional (si no se especifica, se autoincrementa)
 
         Returns:
             Nueva instancia de ObjectType
 
         Example:
             >>> object_type = ObjectType.create("PROCEDURE")
+            >>> object_type_with_id = ObjectType.create("TRANSACTION", id=0)
         """
         now = datetime.utcnow()
         normalized_name = name.strip()
 
         return ObjectType(
-            id=uuid4(),
+            id=id,  # Puede ser None o un valor específico
             name=normalized_name,
             created_at=now,
             updated_at=now,

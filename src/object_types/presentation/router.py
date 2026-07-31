@@ -5,7 +5,6 @@ Define los endpoints REST para administrar tipos de objetos.
 """
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from uuid import UUID
 from typing import List
 
 from src.shared.database.connection import get_session
@@ -81,7 +80,7 @@ async def create_object_type(
         409: Si ya existe un tipo con ese nombre
     """
     use_case = CreateObjectType(repository)
-    object_type = await use_case.execute(request.name)
+    object_type = await use_case.execute(request.name, id=request.id)
     return ObjectTypeResponse.model_validate(object_type)
 
 
@@ -95,6 +94,8 @@ async def create_object_type(
 async def list_object_types(
     page: int = Query(1, ge=1, description="Número de página"),
     page_size: int = Query(50, ge=1, le=1000, description="Tamaño de página"),
+    sort_by: str = Query("id", description="Campo por el que ordenar (id, name, created_at, updated_at)"),
+    sort_order: str = Query("asc", description="Orden (asc/desc)"),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """
@@ -103,13 +104,15 @@ async def list_object_types(
     Args:
         page: Número de página (empezando en 1)
         page_size: Cantidad de elementos por página (máximo 1000)
+        sort_by: Campo por el que ordenar
+        sort_order: Orden (asc/desc)
         repository: Repositorio de tipos
 
     Returns:
         Lista paginada de tipos
     """
     use_case = ListObjectTypes(repository)
-    types, total = await use_case.execute(page, page_size)
+    types, total = await use_case.execute(page, page_size, sort_by, sort_order)
 
     items = [ObjectTypeResponse.model_validate(t) for t in types]
     return ObjectTypeListResponse.create(items, total, page, page_size)
@@ -123,7 +126,7 @@ async def list_object_types(
     description="Obtiene un tipo de objeto específico por su ID.",
 )
 async def get_object_type_by_id(
-    object_type_id: UUID,
+    object_type_id: int,
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """
@@ -152,7 +155,7 @@ async def get_object_type_by_id(
     description="Actualiza el nombre de un tipo de objeto existente.",
 )
 async def update_object_type(
-    object_type_id: UUID,
+    object_type_id: int,
     request: UpdateObjectTypeRequest,
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
@@ -183,7 +186,7 @@ async def update_object_type(
     description="Elimina un tipo de objeto. No se puede eliminar si tiene objetos relacionados.",
 )
 async def delete_object_type(
-    object_type_id: UUID,
+    object_type_id: int,
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """

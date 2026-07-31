@@ -4,7 +4,6 @@ Router FastAPI para genexus_objects.
 Define los endpoints REST para gestionar objetos GeneXus.
 """
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +21,6 @@ from src.genexus_objects.presentation.dtos import (
     UpdateGeneXusObjectRequest,
     GeneXusObjectResponse,
     GeneXusObjectListResponse,
-    SearchGeneXusObjectsRequest,
     SourceTypeDTO,
 )
 from src.object_types.infrastructure.sqlalchemy_object_type_repository import (
@@ -109,6 +107,7 @@ async def create_genexus_object(
         name=request.name,
         object_type_id=request.object_type_id,
         description=request.description,
+        id=request.id,
     )
 
     # Obtener el nombre del tipo para denormalizar
@@ -137,12 +136,13 @@ async def search_genexus_objects(
         Depends(get_object_type_repository),
     ],
     search: Annotated[str | None, Query(description="Búsqueda en nombre y descripción")] = None,
-    name: Annotated[str | None, Query(description="Filtro exacto por nombre")] = None,
-    object_type_id: Annotated[UUID | None, Query(description="Filtro por tipo de objeto")] = None,
+    name: Annotated[str | None, Query(description="Filtro por nombre (búsqueda parcial)")] = None,
+    description: Annotated[str | None, Query(description="Filtro por descripción (búsqueda parcial)")] = None,
+    object_type_id: Annotated[int | None, Query(description="Filtro por tipo de objeto")] = None,
     source_type: Annotated[SourceTypeDTO | None, Query(description="Filtro por origen (MANUAL/CSV)")] = None,
     page: Annotated[int, Query(ge=1, description="Número de página")] = 1,
     page_size: Annotated[int, Query(ge=1, le=1000, description="Tamaño de página")] = 50,
-    sort_by: Annotated[str, Query(pattern="^(name|created_at|updated_at)$", description="Campo de ordenamiento")] = "name",
+    sort_by: Annotated[str, Query(pattern="^(id|name|created_at|updated_at|object_type_name|source_type)$", description="Campo de ordenamiento")] = "id",
     sort_order: Annotated[str, Query(pattern="^(asc|desc)$", description="Orden (asc/desc)")] = "asc",
 ) -> GeneXusObjectListResponse:
     """
@@ -173,10 +173,12 @@ async def search_genexus_objects(
         page_size=page_size,
     )
 
-    # Crear request con los parámetros
-    search_request = SearchGeneXusObjectsRequest(
+    # Ejecutar caso de uso
+    use_case = SearchGeneXusObjects(repository)
+    objects, total = await use_case.execute(
         search=search,
         name=name,
+        description=description,
         object_type_id=object_type_id,
         source_type=source_type,
         page=page,
@@ -184,9 +186,6 @@ async def search_genexus_objects(
         sort_by=sort_by,
         sort_order=sort_order,
     )
-
-    use_case = SearchGeneXusObjects(repository)
-    objects, total = await use_case.execute(search_request)
 
     # Denormalizar nombres de tipos
     # Obtener todos los tipos únicos
@@ -219,7 +218,7 @@ async def search_genexus_objects(
     description="Obtiene un objeto GeneXus específico por su ID.",
 )
 async def get_genexus_object(
-    object_id: UUID,
+    object_id: int,
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),
@@ -265,7 +264,7 @@ async def get_genexus_object(
     description="Actualiza parcialmente un objeto GeneXus existente.",
 )
 async def update_genexus_object(
-    object_id: UUID,
+    object_id: int,
     request: UpdateGeneXusObjectRequest,
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
@@ -325,7 +324,7 @@ async def update_genexus_object(
     description="Elimina un objeto GeneXus existente.",
 )
 async def delete_genexus_object(
-    object_id: UUID,
+    object_id: int,
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),

@@ -2,7 +2,6 @@
 Caso de uso: Buscar y filtrar objetos GeneXus.
 """
 from typing import List, Tuple, Optional
-from uuid import UUID
 
 from src.genexus_objects.domain.genexus_object import GeneXusObject, SourceType
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
@@ -32,11 +31,12 @@ class SearchGeneXusObjects:
         self,
         search: Optional[str] = None,
         name: Optional[str] = None,
-        object_type_id: Optional[UUID] = None,
+        description: Optional[str] = None,
+        object_type_id: Optional[int] = None,
         source_type: Optional[SourceType] = None,
         page: int = 1,
         page_size: int = 50,
-        sort_by: str = "name",
+        sort_by: str = "id",
         sort_order: str = "asc",
     ) -> Tuple[List[GeneXusObject], int]:
         """
@@ -44,7 +44,8 @@ class SearchGeneXusObjects:
 
         Args:
             search: Búsqueda general en name y description
-            name: Filtro exacto por nombre
+            name: Filtro por nombre (búsqueda parcial con ILIKE)
+            description: Filtro por descripción (búsqueda parcial con ILIKE)
             object_type_id: Filtro por tipo
             source_type: Filtro por origen (MANUAL/CSV)
             page: Número de página (empezando en 1)
@@ -64,9 +65,9 @@ class SearchGeneXusObjects:
             page_size = 1000
 
         # Validar sort_by
-        valid_sort_fields = ["name", "created_at", "updated_at"]
+        valid_sort_fields = ["id", "name", "created_at", "updated_at", "object_type_name", "source_type"]
         if sort_by not in valid_sort_fields:
-            sort_by = "name"
+            sort_by = "id"
 
         # Validar sort_order
         if sort_order not in ["asc", "desc"]:
@@ -76,6 +77,7 @@ class SearchGeneXusObjects:
         objects, total = await self.repository.search(
             search=search,
             name=name,
+            description=description,
             object_type_id=object_type_id,
             source_type=source_type,
             page=page,

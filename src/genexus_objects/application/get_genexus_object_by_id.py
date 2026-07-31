@@ -1,8 +1,6 @@
 """
 Caso de uso: Obtener objeto GeneXus por ID.
 """
-from uuid import UUID
-
 from src.genexus_objects.domain.genexus_object import GeneXusObject
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
 from src.shared.errors.exceptions import ObjectNotFoundError
@@ -27,7 +25,7 @@ class GetGeneXusObjectById:
         """
         self.repository = repository
 
-    async def execute(self, object_id: UUID) -> GeneXusObject:
+    async def execute(self, object_id: int) -> GeneXusObject:
         """
         Ejecuta el caso de uso.
 

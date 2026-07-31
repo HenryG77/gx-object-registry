@@ -1,8 +1,6 @@
 """
 Caso de uso: Obtener tipo de objeto por ID.
 """
-from uuid import UUID
-
 from src.object_types.domain.object_type import ObjectType
 from src.object_types.domain.object_type_repository import ObjectTypeRepository
 from src.shared.errors.exceptions import ObjectTypeNotFoundError
@@ -27,7 +25,7 @@ class GetObjectTypeById:
         """
         self.repository = repository
 
-    async def execute(self, object_type_id: UUID) -> ObjectType:
+    async def execute(self, object_type_id: int) -> ObjectType:
         """
         Ejecuta el caso de uso.
 

@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Tipos de Objeto - GeneXus Object Registry{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1><i class="bi bi-tags"></i> Tipos de Objeto</h1>
+        <p>Gestiona los tipos de objetos GeneXus disponibles</p>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="bi bi-plus-circle"></i> Crear Tipo
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list"></i> Listado de Tipos</span>
+        <div>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadTypes()">
+                <i class="bi bi-arrow-clockwise"></i> Actualizar
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+
+        <div id="error-container" class="d-none"></div>
+
+        <div id="table-container" class="table-responsive d-none">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="cursor: pointer;" onclick="sortTable('id')">
+                            ID <span id="sort-id" class="sort-indicator">▼</span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('name')">
+                            Nombre <span id="sort-name" class="sort-indicator"></span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('created_at')">
+                            Fecha Creación <span id="sort-created_at" class="sort-indicator"></span>
+                        </th>
+                        <th style="cursor: pointer;" onclick="sortTable('updated_at')">
+                            Última Modificación <span id="sort-updated_at" class="sort-indicator"></span>
+                        </th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="types-tbody">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination-container" class="d-none mt-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0" id="pagination">
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Crear Tipo -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Tipo de Objeto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="createForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="createId" class="form-label">ID *</label>
+                        <input type="number" class="form-control" id="createId" required min="0"
+                               placeholder="Ej: 0, 1, 2">
+                        <div class="form-text">ID único del tipo (puede ser 0 o cualquier número positivo)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createName" class="form-label">Nombre del Tipo *</label>
+                        <input type="text" class="form-control" id="createName" required
+                               placeholder="Ej: PROCEDURE, TRANSACTION, WEB_PANEL">
+                        <div class="form-text">El nombre debe ser único y descriptivo</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Crear
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Tipo -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Tipo de Objeto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editName" class="form-label">Nombre del Tipo *</label>
+                        <input type="text" class="form-control" id="editName" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .sort-indicator {
+        font-size: 0.75em;
+        color: #6c757d;
+        margin-left: 4px;
+    }
+    th[style*="cursor: pointer"]:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+</style>
+<script>
+    let currentPage = 1;
+    const pageSize = 20;
+    let sortColumn = 'id';
+    let sortDirection = 'asc';
+
+    // Cargar tipos
+    async function loadTypes(page = 1) {
+        currentPage = page;
+        const loading = document.getElementById('loading');
+        const errorContainer = document.getElementById('error-container');
+        const tableContainer = document.getElementById('table-container');
+        const paginationContainer = document.getElementById('pagination-container');
+
+        loading.classList.remove('d-none');
+        errorContainer.classList.add('d-none');
+        tableContainer.classList.add('d-none');
+        paginationContainer.classList.add('d-none');
+
+        try {
+            const url = `${API_BASE_URL}/object-types?page=${page}&page_size=${pageSize}&sort_by=${sortColumn}&sort_order=${sortDirection}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error('Error al cargar los tipos');
+            }
+
+            const data = await response.json();
+            renderTable(data.items);
+            renderPagination(data.page, data.total_pages);
+
+            loading.classList.add('d-none');
+            tableContainer.classList.remove('d-none');
+            if (data.total_pages > 1) {
+                paginationContainer.classList.remove('d-none');
+            }
+        } catch (error) {
+            loading.classList.add('d-none');
+            errorContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> ${error.message}
+                </div>
+            `;
+            errorContainer.classList.remove('d-none');
+        }
+    }
+
+    // Ordenar tabla
+    function sortTable(column) {
+        if (sortColumn === column) {
+            // Cambiar dirección si es la misma columna
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            // Nueva columna, ordenar ascendente por defecto
+            sortColumn = column;
+            sortDirection = 'asc';
+        }
+
+        // Actualizar indicadores visuales
+        updateSortIndicators();
+
+        // Recargar la página actual con el nuevo orden
+        loadTypes(currentPage);
+    }
+
+    // Actualizar indicadores de ordenamiento
+    function updateSortIndicators() {
+        // Limpiar todos los indicadores
+        document.querySelectorAll('.sort-indicator').forEach(el => {
+            el.textContent = '';
+        });
+
+        // Mostrar indicador en la columna activa
+        const indicator = document.getElementById(`sort-${sortColumn}`);
+        if (indicator) {
+            indicator.textContent = sortDirection === 'asc' ? '▼' : '▲';
+        }
+    }
+
+    // Renderizar tabla
+    function renderTable(types) {
+        const tbody = document.getElementById('types-tbody');
+        tbody.innerHTML = '';
+
+        if (types.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                        No hay tipos registrados
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Los tipos ya vienen ordenados del backend
+        types.forEach(type => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><span class="badge bg-secondary">${type.id}</span></td>
+                <td><strong>${escapeHtml(type.name)}</strong></td>
+                <td>${formatDate(type.created_at)}</td>
+                <td>${formatDate(type.updated_at)}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editType('${type.id}', '${escapeHtml(type.name)}')">
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteType('${type.id}', '${escapeHtml(type.name)}')">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Actualizar indicadores
+        updateSortIndicators();
+    }
+
+    // Renderizar paginación
+    function renderPagination(page, totalPages) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === page ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="loadTypes(${i}); return false;">${i}</a>`;
+            pagination.appendChild(li);
+        }
+    }
+
+    // Crear tipo
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = parseInt(document.getElementById('createId').value);
+        const name = document.getElementById('createName').value.trim();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/object-types`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || error.detail || 'Error al crear el tipo');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+            document.getElementById('createForm').reset();
+            showAlert('Tipo de objeto creado exitosamente', 'success');
+            loadTypes(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    });
+
+    // Editar tipo
+    function editType(id, name) {
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = name;
+        new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editId').value;
+        const name = document.getElementById('editName').value.trim();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/object-types/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error al actualizar el tipo');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+            showAlert('Tipo de objeto actualizado exitosamente', 'success');
+            loadTypes(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    });
+
+    // Eliminar tipo
+    async function deleteType(id, name) {
+        if (!confirm(`¿Está seguro de eliminar el tipo "${name}"?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/object-types/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Error al eliminar el tipo');
+            }
+
+            showAlert('Tipo de objeto eliminado exitosamente', 'success');
+            loadTypes(currentPage);
+        } catch (error) {
+            showAlert(error.message, 'danger');
+        }
+    }
+
+    // Helper para escapar HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Cargar al iniciar
+    updateSortIndicators();
+    loadTypes();
+
+    // Abrir modal automáticamente si viene de acciones rápidas
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'create') {
+        // Esperar a que la página esté completamente cargada
+        setTimeout(() => {
+            const createModal = new bootstrap.Modal(document.getElementById('createModal'));
+            createModal.show();
+            // Limpiar el parámetro de la URL sin recargar la página
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }, 300);
+    }
+</script>
+{% endblock %}

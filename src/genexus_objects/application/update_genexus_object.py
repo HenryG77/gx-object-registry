@@ -2,7 +2,6 @@
 Caso de uso: Actualizar objeto GeneXus.
 """
 from typing import Optional
-from uuid import UUID
 
 from src.genexus_objects.domain.genexus_object import GeneXusObject
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
@@ -35,10 +34,10 @@ class UpdateGeneXusObject:
 
     async def execute(
         self,
-        object_id: UUID,
+        object_id: int,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        object_type_id: Optional[UUID] = None,
+        object_type_id: Optional[int] = None,
     ) -> GeneXusObject:
         """
         Ejecuta el caso de uso.

@@ -69,7 +69,7 @@ async def get_object_type_mappings(
     logger.info("Getting object type mappings")
 
     # Cargar todos los tipos
-    object_types = await object_type_repo.list_all()
+    object_types, _ = await object_type_repo.list_all(page_size=10000)
 
     if not object_types:
         return ObjectTypeMappingsResponse(mappings=[], total=0)

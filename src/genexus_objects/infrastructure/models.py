@@ -1,10 +1,8 @@
 """
 Modelos SQLAlchemy para genexus_objects.
 """
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Index, Enum, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Index, Enum, Integer, func
 from sqlalchemy.orm import relationship
-import uuid as uuid_pkg
 import enum
 
 from src.shared.database.base import Base
@@ -27,10 +25,10 @@ class GeneXusObjectModel(Base):
 
     # Columnas
     id = Column(
-        UUID(as_uuid=True),
+        Integer,
         primary_key=True,
-        default=uuid_pkg.uuid4,
-        comment="Identificador único del objeto",
+        autoincrement=False,  # Permite IDs manuales y automáticos
+        comment="Identificador único del objeto (puede ser manual o autoincremental)",
     )
 
     name = Column(
@@ -46,7 +44,7 @@ class GeneXusObjectModel(Base):
     )
 
     object_type_id = Column(
-        UUID(as_uuid=True),
+        Integer,
         ForeignKey("object_types.id", ondelete="RESTRICT"),
         nullable=False,
         comment="ID del tipo de objeto (FK a object_types)",

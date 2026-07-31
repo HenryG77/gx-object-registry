@@ -1,8 +1,17 @@
 """
 Punto de entrada principal de la aplicación FastAPI.
 """
+import sys
+from pathlib import Path
+
+# Agregar el directorio raíz al path para que funcione cuando se ejecuta directamente
+root_dir = Path(__file__).parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 
 from src.shared.config.settings import settings
@@ -84,13 +93,9 @@ async def root():
     """
     Endpoint raíz.
 
-    Redirige a la documentación de la API.
+    Redirige a la interfaz web.
     """
-    return {
-        "message": "GeneXus Object Registry API",
-        "docs": "/docs",
-        "health": "/health",
-    }
+    return RedirectResponse(url="/web")
 
 
 # ============================================================================
@@ -100,7 +105,12 @@ async def root():
 from src.object_types.presentation.router import router as object_types_router
 from src.genexus_objects.presentation.router import router as genexus_objects_router
 from src.imports.presentation.router import router as imports_router
+from src.web.router import router as web_router
 
+# Interfaz web
+app.include_router(web_router)
+
+# API REST
 app.include_router(object_types_router, prefix=settings.api_prefix)
 app.include_router(genexus_objects_router, prefix=settings.api_prefix)
 app.include_router(imports_router, prefix=settings.api_prefix)

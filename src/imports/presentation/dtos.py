@@ -3,7 +3,6 @@ DTOs para el módulo de importación CSV.
 """
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
-from uuid import UUID
 
 
 class ImportErrorDTO(BaseModel):
@@ -26,8 +25,8 @@ class ImportResultResponse(BaseModel):
     error_count: int = Field(..., description="Filas con errores")
     has_errors: bool = Field(..., description="Indica si hubo errores")
     errors: List[ImportErrorDTO] = Field(default_factory=list, description="Lista de errores")
-    created_ids: List[UUID] = Field(default_factory=list, description="IDs de objetos creados")
-    updated_ids: List[UUID] = Field(default_factory=list, description="IDs de objetos actualizados")
+    created_ids: List[int] = Field(default_factory=list, description="IDs de objetos creados")
+    updated_ids: List[int] = Field(default_factory=list, description="IDs de objetos actualizados")
 
 
 class ObjectTypeMappingDTO(BaseModel):
@@ -35,7 +34,7 @@ class ObjectTypeMappingDTO(BaseModel):
 
     code: str = Field(..., description="Código numérico (1, 2, 3...)")
     name: str = Field(..., description="Nombre del tipo de objeto")
-    id: UUID = Field(..., description="ID del tipo en la base de datos")
+    id: int = Field(..., description="ID del tipo en la base de datos")
 
 
 class ObjectTypeMappingsResponse(BaseModel):

@@ -1,8 +1,6 @@
 """
 Caso de uso: Eliminar objeto GeneXus.
 """
-from uuid import UUID
-
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
 from src.shared.errors.exceptions import ObjectNotFoundError
 from src.shared.logging.logger import logger
@@ -26,7 +24,7 @@ class DeleteGeneXusObject:
         """
         self.repository = repository
 
-    async def execute(self, object_id: UUID) -> None:
+    async def execute(self, object_id: int) -> None:
         """
         Ejecuta el caso de uso.
 

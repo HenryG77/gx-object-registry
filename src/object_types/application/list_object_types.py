@@ -27,7 +27,7 @@ class ListObjectTypes:
         self.repository = repository
 
     async def execute(
-        self, page: int = 1, page_size: int = 50
+        self, page: int = 1, page_size: int = 50, sort_by: str = "id", sort_order: str = "asc"
     ) -> Tuple[List[ObjectType], int]:
         """
         Ejecuta el caso de uso.
@@ -35,6 +35,8 @@ class ListObjectTypes:
         Args:
             page: Número de página (empezando en 1)
             page_size: Cantidad de elementos por página
+            sort_by: Campo por el que ordenar (id, name, created_at, updated_at)
+            sort_order: Orden (asc/desc)
 
         Returns:
             Tupla (lista de tipos, total de registros)
@@ -50,7 +52,16 @@ class ListObjectTypes:
         if page_size > 1000:
             page_size = 1000
 
+        # Validar sort_by
+        valid_sort_fields = ["id", "name", "created_at", "updated_at"]
+        if sort_by not in valid_sort_fields:
+            sort_by = "id"
+
+        # Validar sort_order
+        if sort_order not in ["asc", "desc"]:
+            sort_order = "asc"
+
         # Obtener tipos
-        types, total = await self.repository.list_all(page, page_size)
+        types, total = await self.repository.list_all(page, page_size, sort_by, sort_order)
 
         return types, total

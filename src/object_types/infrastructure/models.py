@@ -1,10 +1,8 @@
 """
 Modelos SQLAlchemy para object_types.
 """
-from sqlalchemy import Column, String, DateTime, Index, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, Index, Integer, func
 from sqlalchemy.orm import relationship
-import uuid
 
 from src.shared.database.base import Base
 
@@ -20,10 +18,10 @@ class ObjectTypeModel(Base):
 
     # Columnas
     id = Column(
-        UUID(as_uuid=True),
+        Integer,
         primary_key=True,
-        default=uuid.uuid4,
-        comment="Identificador único del tipo de objeto",
+        autoincrement=False,  # Permite IDs manuales y automáticos
+        comment="Identificador único del tipo de objeto (puede ser manual o autoincremental)",
     )
 
     name = Column(

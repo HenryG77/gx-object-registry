@@ -1,8 +1,6 @@
 """
 Caso de uso: Eliminar tipo de objeto.
 """
-from uuid import UUID
-
 from src.object_types.domain.object_type_repository import ObjectTypeRepository
 from src.shared.errors.exceptions import (
     ObjectTypeNotFoundError,
@@ -30,7 +28,7 @@ class DeleteObjectType:
         """
         self.repository = repository
 
-    async def execute(self, object_type_id: UUID) -> None:
+    async def execute(self, object_type_id: int) -> None:
         """
         Ejecuta el caso de uso.
 

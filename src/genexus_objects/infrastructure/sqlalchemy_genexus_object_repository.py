@@ -2,7 +2,6 @@
 Implementación del repositorio de GeneXusObject usando SQLAlchemy.
 """
 from typing import Optional, List, Tuple
-from uuid import UUID
 from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -78,7 +77,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             updated_at=entity.updated_at,
         )
 
-    async def _verify_object_type_exists(self, object_type_id: UUID) -> None:
+    async def _verify_object_type_exists(self, object_type_id: int) -> None:
         """
         Verifica que el tipo de objeto existe.
 
@@ -102,12 +101,19 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             await self._verify_object_type_exists(genexus_object.object_type_id)
 
             model = self._to_model(genexus_object)
+
+            # Si no se proporciona ID, obtener el siguiente de la secuencia
+            if model.id is None:
+                from sqlalchemy import text
+                result = await self.session.execute(text("SELECT nextval('genexus_objects_id_seq')"))
+                model.id = result.scalar()
+
             self.session.add(model)
             await self.session.flush()
 
             logger.info(
                 "GeneXusObject created",
-                object_id=str(genexus_object.id),
+                object_id=str(model.id),
                 name=genexus_object.name,
                 object_type_id=str(genexus_object.object_type_id),
             )
@@ -151,7 +157,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             logger.error("Database error bulk creating GeneXusObjects", error=str(e))
             raise DatabaseError(str(e))
 
-    async def find_by_id(self, object_id: UUID) -> Optional[GeneXusObject]:
+    async def find_by_id(self, object_id: int) -> Optional[GeneXusObject]:
         """Busca un objeto por ID."""
         try:
             stmt = (
@@ -174,7 +180,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
     async def find_by_name_and_type(
         self,
         name: str,
-        object_type_id: UUID,
+        object_type_id: int,
     ) -> Optional[GeneXusObject]:
         """Busca un objeto por nombre y tipo."""
         try:
@@ -201,7 +207,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
     async def exists_by_name_and_type(
         self,
         name: str,
-        object_type_id: UUID,
+        object_type_id: int,
     ) -> bool:
         """Verifica si existe un objeto con ese nombre y tipo."""
         result = await self.find_by_name_and_type(name, object_type_id)
@@ -211,7 +217,8 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
         self,
         search: Optional[str] = None,
         name: Optional[str] = None,
-        object_type_id: Optional[UUID] = None,
+        description: Optional[str] = None,
+        object_type_id: Optional[int] = None,
         source_type: Optional[SourceType] = None,
         page: int = 1,
         page_size: int = 50,
@@ -238,12 +245,18 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
                     )
                 )
 
-            # Filtro por nombre exacto
+            # Filtro por nombre (búsqueda parcial con ILIKE)
             if name:
-                filters.append(GeneXusObjectModel.name == name)
+                name_pattern = f"%{name}%"
+                filters.append(GeneXusObjectModel.name.ilike(name_pattern))
+
+            # Filtro por descripción (búsqueda parcial con ILIKE)
+            if description:
+                description_pattern = f"%{description}%"
+                filters.append(GeneXusObjectModel.description.ilike(description_pattern))
 
             # Filtro por tipo
-            if object_type_id:
+            if object_type_id is not None:
                 filters.append(GeneXusObjectModel.object_type_id == object_type_id)
 
             # Filtro por origen
@@ -260,12 +273,22 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             total = total_result.scalar()
 
             # Aplicar ordenamiento
-            if sort_by == "created_at":
+            if sort_by == "id":
+                order_col = GeneXusObjectModel.id
+            elif sort_by == "created_at":
                 order_col = GeneXusObjectModel.created_at
             elif sort_by == "updated_at":
                 order_col = GeneXusObjectModel.updated_at
+            elif sort_by == "object_type_name":
+                order_col = ObjectTypeModel.name
+            elif sort_by == "source_type":
+                order_col = GeneXusObjectModel.source_type
             else:  # default: name
                 order_col = GeneXusObjectModel.name
+
+            # Agregar join si se ordena por object_type_name
+            if sort_by == "object_type_name":
+                query = query.join(ObjectTypeModel, GeneXusObjectModel.object_type_id == ObjectTypeModel.id)
 
             if sort_order == "desc":
                 query = query.order_by(order_col.desc())
@@ -358,7 +381,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             logger.error("Database error bulk updating GeneXusObjects", error=str(e))
             raise DatabaseError(str(e))
 
-    async def delete(self, object_id: UUID) -> None:
+    async def delete(self, object_id: int) -> None:
         """Elimina un objeto."""
         try:
             # Verificar que existe
@@ -378,4 +401,34 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
         except Exception as e:
             await self.session.rollback()
             logger.error("Database error deleting GeneXusObject", error=str(e))
+            raise DatabaseError(str(e))
+
+    async def delete_all(self) -> int:
+        """Elimina TODOS los objetos y reinicia la secuencia de IDs."""
+        try:
+            from sqlalchemy import text, func, delete
+
+            # Contar cuántos vamos a eliminar
+            count_stmt = select(func.count()).select_from(GeneXusObjectModel)
+            count_result = await self.session.execute(count_stmt)
+            total = count_result.scalar()
+
+            # Eliminar todos los registros
+            delete_stmt = delete(GeneXusObjectModel)
+            await self.session.execute(delete_stmt)
+
+            # Reiniciar la secuencia de IDs a 1
+            await self.session.execute(
+                text("ALTER SEQUENCE genexus_objects_id_seq RESTART WITH 1")
+            )
+
+            await self.session.flush()
+
+            logger.info("All GeneXusObjects deleted and sequence reset", count=total)
+
+            return total
+
+        except Exception as e:
+            await self.session.rollback()
+            logger.error("Database error deleting all GeneXusObjects", error=str(e))
             raise DatabaseError(str(e))

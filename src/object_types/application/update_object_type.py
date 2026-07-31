@@ -1,8 +1,6 @@
 """
 Caso de uso: Actualizar tipo de objeto.
 """
-from uuid import UUID
-
 from src.object_types.domain.object_type import ObjectType
 from src.object_types.domain.object_type_repository import ObjectTypeRepository
 from src.shared.errors.exceptions import (
@@ -32,7 +30,7 @@ class UpdateObjectType:
         """
         self.repository = repository
 
-    async def execute(self, object_type_id: UUID, new_name: str) -> ObjectType:
+    async def execute(self, object_type_id: int, new_name: str) -> ObjectType:
         """
         Ejecuta el caso de uso.
 

@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Importar CSV - GeneXus Object Registry{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-file-earmark-arrow-up"></i> Importar desde CSV</h1>
+    <p>Importa objetos GeneXus masivamente desde un archivo CSV</p>
+    <div class="alert alert-danger mb-0">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>IMPORTANTE:</strong> Esta operación <strong>eliminará TODOS los objetos existentes</strong> y los reemplazará con los del CSV. Los IDs comenzarán desde 1.
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Instrucciones -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-info-circle"></i> Instrucciones
+            </div>
+            <div class="card-body">
+                <h6>Formato del archivo CSV:</h6>
+                <ul class="small">
+                    <li><strong>Delimitador:</strong> Punto y coma (<code>;</code>)</li>
+                    <li><strong>Encoding:</strong> UTF-8</li>
+                    <li><strong>Headers:</strong> name;description;objectType</li>
+                </ul>
+
+                <h6 class="mt-3">Columnas:</h6>
+                <ul class="small">
+                    <li><strong>name</strong>: Nombre del objeto (obligatorio)</li>
+                    <li><strong>description</strong>: Descripción (opcional)</li>
+                    <li><strong>objectType</strong>: Código numérico del tipo</li>
+                </ul>
+
+                <h6 class="mt-3">⚠️ Comportamiento:</h6>
+                <div class="alert alert-danger small mb-0">
+                    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> ADVERTENCIA</h6>
+                    <ul class="mb-0">
+                        <li><strong>Se eliminarán TODOS los objetos existentes</strong></li>
+                        <li>Los IDs se reiniciarán desde 1</li>
+                        <li>Solo quedarán los datos del CSV</li>
+                        <li>Esta acción NO se puede deshacer</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Códigos de Tipo -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-hash"></i> Códigos de Tipos
+            </div>
+            <div class="card-body">
+                <div id="mappings-loading" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                </div>
+                <div id="mappings-list" class="d-none"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Importación -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-upload"></i> Seleccionar Archivo
+            </div>
+            <div class="card-body">
+                <form id="importForm">
+                    <div class="mb-4">
+                        <label for="csvFile" class="form-label">Archivo CSV *</label>
+                        <input type="file" class="form-control" id="csvFile" accept=".csv" required>
+                        <div class="form-text">Tamaño máximo: 50MB</div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="bi bi-exclamation-triangle"></i> Eliminar Todo e Importar CSV
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Progreso -->
+                <div id="progress-container" class="mt-4 d-none">
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                            <span>Procesando archivo...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultado -->
+                <div id="result-container" class="mt-4 d-none">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Ejemplo de CSV -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-file-earmark-text"></i> Ejemplo de CSV
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded mb-0" style="font-size: 0.9rem;"><code>name;description;objectType
+AhrPr001;Recupera Tasa de Interés;1
+AhrTn001;Tipos de Cuentas;2
+CalculoIVA;Calcula el IVA de un monto;1
+Dashboard;Panel principal del sistema;3</code></pre>
+                <button class="btn btn-sm btn-outline-secondary mt-3" onclick="downloadExample()">
+                    <i class="bi bi-download"></i> Descargar Ejemplo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Cargar mappings de tipos
+    async function loadMappings() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/imports/mappings`);
+            const data = await response.json();
+
+            const mappingsList = document.getElementById('mappings-list');
+            mappingsList.innerHTML = '';
+
+            if (data.mappings.length === 0) {
+                mappingsList.innerHTML = '<p class="text-muted small mb-0">No hay tipos definidos</p>';
+            } else {
+                const table = document.createElement('table');
+                table.className = 'table table-sm table-hover mb-0';
+                table.innerHTML = `
+                    <thead>
+                        <tr><th>Código</th><th>Tipo</th></tr>
+                    </thead>
+                    <tbody>
+                        ${data.mappings.map(m => `
+                            <tr>
+                                <td><code>${m.code}</code></td>
+                                <td>${escapeHtml(m.name)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                mappingsList.appendChild(table);
+            }
+
+            document.getElementById('mappings-loading').classList.add('d-none');
+            mappingsList.classList.remove('d-none');
+        } catch (error) {
+            document.getElementById('mappings-loading').classList.add('d-none');
+            document.getElementById('mappings-list').innerHTML =
+                '<p class="text-danger small mb-0">Error cargando códigos</p>';
+            document.getElementById('mappings-list').classList.remove('d-none');
+        }
+    }
+
+    // Importar archivo
+    document.getElementById('importForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('csvFile');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            showAlert('Seleccione un archivo CSV', 'warning');
+            return;
+        }
+
+        // Validar extensión
+        if (!file.name.endsWith('.csv')) {
+            showAlert('El archivo debe tener extensión .csv', 'danger');
+            return;
+        }
+
+        // Validar tamaño (50MB)
+        const maxSize = 50 * 1024 * 1024;
+        if (file.size > maxSize) {
+            showAlert('El archivo supera el tamaño máximo de 50MB', 'danger');
+            return;
+        }
+
+        // Confirmación OBLIGATORIA antes de importar
+        if (!confirm('⚠️ ADVERTENCIA - OPERACIÓN DESTRUCTIVA\n\n' +
+                    'Esta acción eliminará TODOS los objetos existentes en la base de datos.\n' +
+                    'Los IDs se reiniciarán desde 1.\n' +
+                    'Solo quedarán los datos del archivo CSV.\n\n' +
+                    '¿Estás ABSOLUTAMENTE SEGURO de que deseas continuar?\n\n' +
+                    'Haz clic en CANCELAR si tienes alguna duda.')) {
+            return;
+        }
+
+        // Mostrar progreso
+        document.getElementById('progress-container').classList.remove('d-none');
+        document.getElementById('result-container').classList.add('d-none');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_BASE_URL}/imports/csv`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            // Ocultar progreso
+            document.getElementById('progress-container').classList.add('d-none');
+
+            if (!response.ok) {
+                throw new Error(result.detail || 'Error al importar el archivo');
+            }
+
+            // Mostrar resultado
+            displayResult(result);
+
+            // Limpiar form
+            fileInput.value = '';
+
+        } catch (error) {
+            document.getElementById('progress-container').classList.add('d-none');
+            showAlert(error.message, 'danger');
+        }
+    });
+
+    // Mostrar resultado de importación
+    function displayResult(result) {
+        const container = document.getElementById('result-container');
+        const hasErrors = result.has_errors;
+        const alertClass = hasErrors ? 'warning' : 'success';
+        const icon = hasErrors ? 'exclamation-triangle' : 'check-circle';
+
+        let html = `
+            <div class="alert alert-${alertClass}">
+                <h5><i class="bi bi-${icon}"></i> Importación Completada</h5>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <strong>Total:</strong> ${result.total_rows}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Creados:</strong> <span class="badge bg-success">${result.created_count}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Actualizados:</strong> <span class="badge bg-info">${result.updated_count}</span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Errores:</strong> <span class="badge bg-danger">${result.error_count}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Mostrar errores si los hay
+        if (result.errors && result.errors.length > 0) {
+            html += `
+                <div class="card mt-3">
+                    <div class="card-header bg-danger text-white">
+                        <i class="bi bi-exclamation-triangle"></i> Errores Encontrados (${result.errors.length})
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fila</th>
+                                    <th>Campo</th>
+                                    <th>Error</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${result.errors.map(err => `
+                                    <tr>
+                                        <td>${err.row_number}</td>
+                                        <td>${err.field || '-'}</td>
+                                        <td>${escapeHtml(err.message)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+        container.classList.remove('d-none');
+
+        // Scroll al resultado
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Descargar CSV de ejemplo
+    function downloadExample() {
+        const csv = `name;description;objectType
+AhrPr001;Recupera Tasa de Interés;1
+AhrTn001;Tipos de Cuentas;2
+CalculoIVA;Calcula el IVA de un monto;1
+Dashboard;Panel principal del sistema;3`;
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'ejemplo_objetos.csv';
+        link.click();
+    }
+
+    // Helper para escapar HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Cargar mappings al iniciar
+    loadMappings();
+</script>
+{% endblock %}

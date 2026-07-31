@@ -1,8 +1,6 @@
 """
 Caso de uso: Crear objeto GeneXus manualmente.
 """
-from uuid import UUID
-
 from src.genexus_objects.domain.genexus_object import GeneXusObject
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
 from src.shared.errors.exceptions import ObjectAlreadyExistsError
@@ -32,8 +30,9 @@ class CreateGeneXusObject:
     async def execute(
         self,
         name: str,
-        object_type_id: UUID,
+        object_type_id: int,
         description: str = None,
+        id: int = None,
     ) -> GeneXusObject:
         """
         Ejecuta el caso de uso.
@@ -42,6 +41,7 @@ class CreateGeneXusObject:
             name: Nombre del objeto
             object_type_id: ID del tipo de objeto
             description: Descripción opcional
+            id: ID opcional (si no se especifica, se autoincrementa)
 
         Returns:
             Objeto GeneXus creado
@@ -71,6 +71,7 @@ class CreateGeneXusObject:
             name=normalized_name,
             object_type_id=object_type_id,
             description=description,
+            id=id,
         )
 
         # Persistir

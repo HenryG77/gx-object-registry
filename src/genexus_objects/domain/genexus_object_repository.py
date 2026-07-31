@@ -106,6 +106,7 @@ class GeneXusObjectRepository(ABC):
         self,
         search: Optional[str] = None,
         name: Optional[str] = None,
+        description: Optional[str] = None,
         object_type_id: Optional[UUID] = None,
         source_type: Optional[SourceType] = None,
         page: int = 1,
@@ -118,7 +119,8 @@ class GeneXusObjectRepository(ABC):
 
         Args:
             search: Búsqueda general en name y description (opcional)
-            name: Filtro exacto por nombre (opcional)
+            name: Filtro por nombre con búsqueda parcial (opcional)
+            description: Filtro por descripción con búsqueda parcial (opcional)
             object_type_id: Filtro por tipo (opcional)
             source_type: Filtro por origen (opcional)
             page: Número de página (empezando en 1)
@@ -176,6 +178,19 @@ class GeneXusObjectRepository(ABC):
 
         Raises:
             ObjectNotFoundError: Si el objeto no existe
+            DatabaseError: Si hay error de base de datos
+        """
+        pass
+
+    @abstractmethod
+    async def delete_all(self) -> int:
+        """
+        Elimina TODOS los objetos y reinicia la secuencia de IDs.
+
+        Returns:
+            Número de objetos eliminados
+
+        Raises:
             DatabaseError: Si hay error de base de datos
         """
         pass
