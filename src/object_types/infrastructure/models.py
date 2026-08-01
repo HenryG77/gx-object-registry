@@ -1,7 +1,7 @@
 """
 Modelos SQLAlchemy para object_types.
 """
-from sqlalchemy import Column, String, DateTime, Index, Integer, func
+from sqlalchemy import Column, String, DateTime, Index, Integer, ForeignKey, func
 from sqlalchemy.orm import relationship
 
 from src.shared.database.base import Base
@@ -31,6 +31,13 @@ class ObjectTypeModel(Base):
         comment="Nombre del tipo de objeto (ej: PROCEDURE, TRANSACTION)",
     )
 
+    created_by = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Usuario que creó el registro",
+    )
+
     created_at = Column(
         DateTime(timezone=False),
         nullable=False,
@@ -46,8 +53,12 @@ class ObjectTypeModel(Base):
         comment="Fecha de última actualización",
     )
 
-    # Relaciones (se configurarán cuando creemos genexus_objects)
-    # genexus_objects = relationship("GeneXusObjectModel", back_populates="object_type")
+    # Relaciones
+    creator = relationship(
+        "UserModel",
+        foreign_keys=[created_by],
+        lazy="select",
+    )
 
     # Índices
     __table_args__ = (

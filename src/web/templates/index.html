@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1><i class="bi bi-house-door"></i> Panel de Control</h1>
-    <p>Gestión centralizada de objetos GeneXus</p>
+    <p>Bienvenido, <strong>{{ current_user.full_name if current_user.full_name else current_user.username }}</strong> - Gestión centralizada de objetos GeneXus</p>
 </div>
 
 <div class="row g-4 mb-4">

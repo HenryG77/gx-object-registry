@@ -18,6 +18,7 @@ from src.shared.config.settings import settings
 from src.shared.database.base import Base
 from src.object_types.infrastructure.models import ObjectTypeModel
 from src.genexus_objects.infrastructure.models import GeneXusObjectModel
+from src.auth.infrastructure.models import UserModel
 
 # this is the Alembic Config object
 config = context.config

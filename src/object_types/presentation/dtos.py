@@ -69,6 +69,7 @@ class ObjectTypeResponse(BaseModel):
 
     id: int = Field(..., description="ID único del tipo de objeto (autoincremental desde 0)")
     name: str = Field(..., description="Nombre del tipo")
+    created_by: Optional[int] = Field(None, description="ID del usuario que creó el tipo")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
 

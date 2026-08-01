@@ -32,6 +32,7 @@ class GeneXusObject:
         description: Descripción funcional del objeto (opcional)
         object_type_id: ID del tipo de objeto (FK a object_types)
         source_type: Origen del registro (MANUAL o CSV)
+        created_by: ID del usuario que creó el registro (opcional)
         created_at: Fecha de creación
         updated_at: Fecha de última actualización
     """
@@ -41,6 +42,7 @@ class GeneXusObject:
     description: Optional[str]
     object_type_id: int
     source_type: SourceType
+    created_by: Optional[int]
     created_at: datetime
     updated_at: datetime
 
@@ -67,6 +69,7 @@ class GeneXusObject:
     def create_manual(
         name: str,
         object_type_id: int,
+        created_by: Optional[int] = None,
         description: Optional[str] = None,
         id: Optional[int] = None,
     ) -> "GeneXusObject":
@@ -76,6 +79,7 @@ class GeneXusObject:
         Args:
             name: Nombre del objeto
             object_type_id: ID del tipo de objeto
+            created_by: ID del usuario que crea el objeto (opcional)
             description: Descripción opcional
             id: ID opcional (si no se especifica, se autoincrementa)
 
@@ -86,13 +90,8 @@ class GeneXusObject:
             >>> obj = GeneXusObject.create_manual(
             ...     "AhrPr001",
             ...     1,
-            ...     "Recupera Tasa de Interés"
-            ... )
-            >>> obj_with_id = GeneXusObject.create_manual(
-            ...     "AhrPr002",
-            ...     1,
-            ...     "Otro objeto",
-            ...     id=0
+            ...     created_by=1,
+            ...     description="Recupera Tasa de Interés"
             ... )
         """
         now = datetime.utcnow()
@@ -105,6 +104,7 @@ class GeneXusObject:
             description=normalized_description,
             object_type_id=object_type_id,
             source_type=SourceType.MANUAL,
+            created_by=created_by,
             created_at=now,
             updated_at=now,
         )
@@ -113,6 +113,7 @@ class GeneXusObject:
     def create_from_csv(
         name: str,
         object_type_id: int,
+        created_by: Optional[int] = None,
         description: Optional[str] = None,
     ) -> "GeneXusObject":
         """
@@ -121,6 +122,7 @@ class GeneXusObject:
         Args:
             name: Nombre del objeto
             object_type_id: ID del tipo de objeto
+            created_by: ID del usuario que importa el CSV (opcional)
             description: Descripción opcional
 
         Returns:
@@ -136,6 +138,7 @@ class GeneXusObject:
             description=normalized_description,
             object_type_id=object_type_id,
             source_type=SourceType.CSV,
+            created_by=created_by,
             created_at=now,
             updated_at=now,
         )

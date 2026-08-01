@@ -56,6 +56,13 @@ class GeneXusObjectModel(Base):
         comment="Origen del registro (MANUAL o CSV)",
     )
 
+    created_by = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Usuario que creó el registro",
+    )
+
     created_at = Column(
         DateTime(timezone=False),
         nullable=False,
@@ -76,6 +83,12 @@ class GeneXusObjectModel(Base):
         "ObjectTypeModel",
         backref="genexus_objects",
         lazy="joined",  # Carga eager por defecto
+    )
+
+    creator = relationship(
+        "UserModel",
+        foreign_keys=[created_by],
+        lazy="select",
     )
 
     # Índices y restricciones

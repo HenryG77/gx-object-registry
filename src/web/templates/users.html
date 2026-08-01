@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-people"></i> Gestión de Usuarios
+        </h1>
+        <button type="button" class="btn btn-primary" onclick="openCreateUserModal()">
+            <i class="bi bi-person-plus"></i> Crear Usuario
+        </button>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="includeInactive" onchange="loadUsers()">
+                        <label class="form-check-label" for="includeInactive">
+                            Incluir usuarios inactivos
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="card">
+        <div class="card-body">
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="mt-2">Cargando usuarios...</p>
+            </div>
+
+            <div id="tableContainer" style="display: none;">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Nombre Completo</th>
+                                <th>Estado</th>
+                                <th>Último Login</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Crear Usuario -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createUserForm">
+                    <div class="mb-3">
+                        <label for="createUsername" class="form-label">Nombre de Usuario <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="createUsername" required minlength="3" maxlength="50">
+                        <div class="form-text">Mínimo 3 caracteres, único en el sistema</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="createEmail" required maxlength="100">
+                        <div class="form-text">Debe ser un email válido y único</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createFullName" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="createFullName" maxlength="100">
+                        <div class="form-text">Opcional</div>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Nota:</strong> La contraseña temporal será igual al nombre de usuario. El usuario deberá cambiarla en su primer inicio de sesión.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="createUser()">Crear Usuario</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Usuario -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label for="editFullName" class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" id="editFullName" maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" required maxlength="100">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Resetear Contraseña -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Resetear Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resetUserId">
+                <div class="alert alert-warning" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>Atención:</strong> La contraseña del usuario será reseteada.
+                </div>
+                <p>Usuario: <strong id="resetUsername"></strong></p>
+                <p class="mb-0">La nueva contraseña temporal será igual al nombre de usuario. El usuario deberá cambiarla en su próximo inicio de sesión.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="resetPassword()">Resetear Contraseña</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentPage = 1;
+const pageSize = 20;
+let createModal, editModal, resetModal;
+
+// Función para formatear fechas
+function formatDateTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('es-AR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    createModal = new bootstrap.Modal(document.getElementById('createUserModal'));
+    editModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+    resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    loadUsers();
+});
+
+async function loadUsers(page = 1) {
+    currentPage = page;
+    const includeInactive = document.getElementById('includeInactive').checked;
+
+    const loading = document.getElementById('loading');
+    const tableContainer = document.getElementById('tableContainer');
+
+    loading.style.display = 'block';
+    tableContainer.style.display = 'none';
+
+    try {
+        const response = await fetch(`/api/users?page=${page}&page_size=${pageSize}&include_inactive=${includeInactive}`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al cargar usuarios');
+        }
+
+        const data = await response.json();
+
+        renderUsersTable(data.items);
+        renderPagination(data.page, data.total_pages);
+
+        loading.style.display = 'none';
+        tableContainer.style.display = 'block';
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('Error al cargar usuarios', 'danger');
+        loading.style.display = 'none';
+    }
+}
+
+function renderUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+    tbody.innerHTML = '';
+
+    users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${user.id}</td>
+            <td><strong>${user.username}</strong></td>
+            <td>${user.email}</td>
+            <td>${user.full_name || '<em class="text-muted">Sin especificar</em>'}</td>
+            <td>
+                ${user.is_active
+                    ? '<span class="badge bg-success">Activo</span>'
+                    : '<span class="badge bg-secondary">Inactivo</span>'}
+            </td>
+            <td>${user.last_login ? formatDateTime(user.last_login) : '<em class="text-muted">Nunca</em>'}</td>
+            <td>${formatDateTime(user.created_at)}</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary" onclick="openEditModal(${user.id}, '${user.full_name || ''}', '${user.email}')" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning" onclick="openResetPasswordModal(${user.id}, '${user.username}')" title="Resetear contraseña">
+                        <i class="bi bi-key"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-${user.is_active ? 'secondary' : 'success'}"
+                            onclick="toggleUserStatus(${user.id}, ${!user.is_active})"
+                            title="${user.is_active ? 'Desactivar' : 'Activar'}">
+                        <i class="bi bi-${user.is_active ? 'slash-circle' : 'check-circle'}"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderPagination(currentPage, totalPages) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    // Botón anterior
+    const prevItem = document.createElement('li');
+    prevItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevItem.innerHTML = `<a class="page-link" href="#" onclick="loadUsers(${currentPage - 1}); return false;">Anterior</a>`;
+    pagination.appendChild(prevItem);
+
+    // Páginas
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            const pageItem = document.createElement('li');
+            pageItem.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageItem.innerHTML = `<a class="page-link" href="#" onclick="loadUsers(${i}); return false;">${i}</a>`;
+            pagination.appendChild(pageItem);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            const ellipsis = document.createElement('li');
+            ellipsis.className = 'page-item disabled';
+            ellipsis.innerHTML = '<a class="page-link" href="#">...</a>';
+            pagination.appendChild(ellipsis);
+        }
+    }
+
+    // Botón siguiente
+    const nextItem = document.createElement('li');
+    nextItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextItem.innerHTML = `<a class="page-link" href="#" onclick="loadUsers(${currentPage + 1}); return false;">Siguiente</a>`;
+    pagination.appendChild(nextItem);
+}
+
+function openCreateUserModal() {
+    document.getElementById('createUsername').value = '';
+    document.getElementById('createEmail').value = '';
+    document.getElementById('createFullName').value = '';
+    createModal.show();
+}
+
+function openEditModal(userId, fullName, email) {
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editFullName').value = fullName;
+    document.getElementById('editEmail').value = email;
+    editModal.show();
+}
+
+function openResetPasswordModal(userId, username) {
+    document.getElementById('resetUserId').value = userId;
+    document.getElementById('resetUsername').textContent = username;
+    resetModal.show();
+}
+
+async function createUser() {
+    const username = document.getElementById('createUsername').value.trim();
+    const email = document.getElementById('createEmail').value.trim();
+    const fullName = document.getElementById('createFullName').value.trim() || null;
+
+    // Validar campos requeridos
+    if (!username || !email) {
+        showAlert('Usuario y email son requeridos', 'danger');
+        return;
+    }
+
+    if (username.length < 3) {
+        showAlert('El nombre de usuario debe tener al menos 3 caracteres', 'danger');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({
+                username: username,
+                email: email,
+                password: username,  // Password temporal = username
+                full_name: fullName
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al crear usuario');
+        }
+
+        showAlert(`Usuario creado exitosamente. La contraseña temporal es: ${username}`, 'success');
+        createModal.hide();
+        loadUsers(currentPage);
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function saveUser() {
+    const userId = document.getElementById('editUserId').value;
+    const fullName = document.getElementById('editFullName').value.trim() || null;
+    const email = document.getElementById('editEmail').value.trim();
+
+    try {
+        const response = await fetch(`/api/users/${userId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({ full_name: fullName, email: email })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al actualizar usuario');
+        }
+
+        showAlert('Usuario actualizado exitosamente', 'success');
+        editModal.hide();
+        loadUsers(currentPage);
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function resetPassword() {
+    const userId = document.getElementById('resetUserId').value;
+
+    try {
+        const response = await fetch(`/api/users/${userId}/reset-password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({})
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al resetear contraseña');
+        }
+
+        showAlert('Contraseña reseteada exitosamente. La contraseña temporal es igual al nombre de usuario.', 'success');
+        resetModal.hide();
+        loadUsers(currentPage);
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function toggleUserStatus(userId, isActive) {
+    const action = isActive ? 'activar' : 'desactivar';
+
+    if (!confirm(`¿Estás seguro de que quieres ${action} este usuario?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/users/${userId}/status`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify({ is_active: isActive })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Error al cambiar estado del usuario');
+        }
+
+        showAlert(`Usuario ${isActive ? 'activado' : 'desactivado'} exitosamente`, 'success');
+        loadUsers(currentPage);
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+</script>
+{% endblock %}
