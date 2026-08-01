@@ -53,6 +53,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             description=model.description,
             object_type_id=model.object_type_id,
             source_type=SourceType(model.source_type.value),
+            created_by=model.created_by,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -73,6 +74,7 @@ class SQLAlchemyGeneXusObjectRepository(GeneXusObjectRepository):
             description=entity.description,
             object_type_id=entity.object_type_id,
             source_type=SourceTypeEnum(entity.source_type.value),
+            created_by=entity.created_by,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

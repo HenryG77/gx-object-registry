@@ -8,6 +8,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.domain.user import User
+from src.auth.presentation.dependencies import get_current_user
 from src.genexus_objects.application.create_genexus_object import CreateGeneXusObject
 from src.genexus_objects.application.search_genexus_objects import SearchGeneXusObjects
 from src.genexus_objects.application.get_genexus_object_by_id import GetGeneXusObjectById
@@ -72,6 +74,7 @@ def get_object_type_repository(
 )
 async def create_genexus_object(
     request: CreateGeneXusObjectRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),
@@ -86,6 +89,7 @@ async def create_genexus_object(
 
     Args:
         request: Datos del objeto a crear
+        current_user: Usuario autenticado
         repository: Repositorio de objetos
         object_type_repo: Repositorio de tipos de objeto
 
@@ -93,6 +97,7 @@ async def create_genexus_object(
         Objeto creado
 
     Raises:
+        401: Si no está autenticado
         ObjectAlreadyExistsError: Si ya existe un objeto con ese nombre y tipo
         ObjectTypeNotFoundError: Si el tipo no existe
     """
@@ -100,12 +105,14 @@ async def create_genexus_object(
         "Creating GeneXusObject",
         name=request.name,
         object_type_id=str(request.object_type_id),
+        created_by=str(current_user.id),
     )
 
     use_case = CreateGeneXusObject(repository)
     genexus_object = await use_case.execute(
         name=request.name,
         object_type_id=request.object_type_id,
+        created_by=current_user.id,
         description=request.description,
         id=request.id,
     )
@@ -266,6 +273,7 @@ async def get_genexus_object(
 async def update_genexus_object(
     object_id: int,
     request: UpdateGeneXusObjectRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),
@@ -281,6 +289,7 @@ async def update_genexus_object(
     Args:
         object_id: ID del objeto a actualizar
         request: Datos a actualizar
+        current_user: Usuario autenticado
         repository: Repositorio de objetos
         object_type_repo: Repositorio de tipos
 
@@ -288,6 +297,7 @@ async def update_genexus_object(
         Objeto actualizado
 
     Raises:
+        401: Si no está autenticado
         ObjectNotFoundError: Si el objeto no existe
         ObjectAlreadyExistsError: Si el nuevo nombre/tipo ya existe
         ObjectTypeNotFoundError: Si el nuevo tipo no existe
@@ -297,6 +307,7 @@ async def update_genexus_object(
         object_id=str(object_id),
         name=request.name,
         object_type_id=str(request.object_type_id) if request.object_type_id else None,
+        user_id=str(current_user.id),
     )
 
     use_case = UpdateGeneXusObject(repository)
@@ -325,6 +336,7 @@ async def update_genexus_object(
 )
 async def delete_genexus_object(
     object_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
     repository: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),
@@ -335,12 +347,18 @@ async def delete_genexus_object(
 
     Args:
         object_id: ID del objeto a eliminar
+        current_user: Usuario autenticado
         repository: Repositorio de objetos
 
     Raises:
+        401: Si no está autenticado
         ObjectNotFoundError: Si el objeto no existe
     """
-    logger.info("Deleting GeneXusObject", object_id=str(object_id))
+    logger.info(
+        "Deleting GeneXusObject",
+        object_id=str(object_id),
+        user_id=str(current_user.id),
+    )
 
     use_case = DeleteGeneXusObject(repository)
     await use_case.execute(object_id)

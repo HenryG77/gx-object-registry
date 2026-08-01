@@ -43,6 +43,17 @@ class ErrorCode(str, Enum):
     INVALID_ROW = "INVALID_ROW"
 
     # ============================================================================
+    # Authentication/Users
+    # ============================================================================
+    USER_NOT_FOUND = "USER_NOT_FOUND"
+    USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS"
+    INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
+    UNAUTHORIZED = "UNAUTHORIZED"
+    FORBIDDEN = "FORBIDDEN"
+    INVALID_TOKEN = "INVALID_TOKEN"
+    TOKEN_EXPIRED = "TOKEN_EXPIRED"
+
+    # ============================================================================
     # System
     # ============================================================================
     DATABASE_ERROR = "DATABASE_ERROR"

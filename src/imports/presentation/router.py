@@ -6,6 +6,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth.domain.user import User
+from src.auth.presentation.dependencies import get_current_user
 from src.imports.application.import_csv import ImportCSV
 from src.imports.domain.object_type_mapper import ObjectTypeMapper
 from src.imports.presentation.dtos import (
@@ -107,6 +109,7 @@ async def get_object_type_mappings(
 )
 async def import_csv_file(
     file: Annotated[UploadFile, File(description="Archivo CSV con objetos GeneXus")],
+    current_user: Annotated[User, Depends(get_current_user)],
     genexus_repo: Annotated[
         SQLAlchemyGeneXusObjectRepository,
         Depends(get_genexus_object_repository),
@@ -131,6 +134,7 @@ async def import_csv_file(
 
     Args:
         file: Archivo CSV subido
+        current_user: Usuario autenticado
         genexus_repo: Repositorio de objetos
         object_type_repo: Repositorio de tipos
 
@@ -138,12 +142,14 @@ async def import_csv_file(
         Resultado de la importación con estadísticas y errores
 
     Raises:
+        401: Si no está autenticado
         HTTPException: Si el archivo es demasiado grande o tiene formato inválido
     """
     logger.info(
         "Starting CSV import from uploaded file",
         filename=file.filename,
         content_type=file.content_type,
+        user_id=str(current_user.id),
     )
 
     # Validar tipo de archivo
@@ -183,7 +189,7 @@ async def import_csv_file(
 
         # Ejecutar importación
         use_case = ImportCSV(genexus_repo, object_type_repo)
-        result = await use_case.execute(content_str)
+        result = await use_case.execute(content_str, created_by=current_user.id)
 
         # Convertir a DTO
         response = ImportResultResponse(

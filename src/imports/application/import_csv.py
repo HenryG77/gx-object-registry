@@ -46,17 +46,18 @@ class ImportCSV:
         self.object_type_repository = object_type_repository
         self.csv_parser = CSVParser(strict_headers=True)
 
-    async def execute(self, csv_content: str) -> ImportResult:
+    async def execute(self, csv_content: str, created_by: int | None = None) -> ImportResult:
         """
         Ejecuta la importación desde contenido CSV.
 
         Args:
             csv_content: Contenido del archivo CSV
+            created_by: ID del usuario que realiza la importación (opcional)
 
         Returns:
             Resultado de la importación con estadísticas y errores
         """
-        logger.info("Starting CSV import")
+        logger.info("Starting CSV import", created_by=str(created_by) if created_by else None)
         result = ImportResult()
 
         try:
@@ -90,7 +91,7 @@ class ImportCSV:
 
             # 4. Procesar cada fila
             for row in rows:
-                await self._process_row(row, type_mapper, result)
+                await self._process_row(row, type_mapper, result, created_by)
 
             logger.info(
                 "CSV import completed",
@@ -122,6 +123,7 @@ class ImportCSV:
         row: CSVRow,
         type_mapper: ObjectTypeMapper,
         result: ImportResult,
+        created_by: int | None = None,
     ) -> None:
         """
         Procesa una fila del CSV.
@@ -130,6 +132,7 @@ class ImportCSV:
             row: Fila parseada
             type_mapper: Mapper de tipos
             result: Resultado acumulado
+            created_by: ID del usuario que realiza la importación (opcional)
         """
         try:
             # Validar formato básico
@@ -162,7 +165,7 @@ class ImportCSV:
                 return
 
             # Crear nuevo objeto (todos son nuevos porque eliminamos todo antes)
-            await self._create_object(row, object_type_id, result)
+            await self._create_object(row, object_type_id, result, created_by)
 
         except Exception as e:
             logger.error(
@@ -185,6 +188,7 @@ class ImportCSV:
         row: CSVRow,
         object_type_id,
         result: ImportResult,
+        created_by: int | None = None,
     ) -> None:
         """
         Crea un nuevo objeto desde la fila CSV.
@@ -193,12 +197,14 @@ class ImportCSV:
             row: Fila con datos
             object_type_id: ID del tipo de objeto
             result: Resultado acumulado
+            created_by: ID del usuario que realiza la importación (opcional)
         """
         try:
             # Crear entidad de dominio
             genexus_object = GeneXusObject.create_from_csv(
                 name=row.name,
                 object_type_id=object_type_id,
+                created_by=created_by,
                 description=row.description,
             )
 

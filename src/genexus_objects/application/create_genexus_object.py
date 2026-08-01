@@ -1,6 +1,8 @@
 """
 Caso de uso: Crear objeto GeneXus manualmente.
 """
+from typing import Optional
+
 from src.genexus_objects.domain.genexus_object import GeneXusObject
 from src.genexus_objects.domain.genexus_object_repository import GeneXusObjectRepository
 from src.shared.errors.exceptions import ObjectAlreadyExistsError
@@ -31,6 +33,7 @@ class CreateGeneXusObject:
         self,
         name: str,
         object_type_id: int,
+        created_by: Optional[int] = None,
         description: str = None,
         id: int = None,
     ) -> GeneXusObject:
@@ -40,6 +43,7 @@ class CreateGeneXusObject:
         Args:
             name: Nombre del objeto
             object_type_id: ID del tipo de objeto
+            created_by: ID del usuario que crea el objeto (opcional)
             description: Descripción opcional
             id: ID opcional (si no se especifica, se autoincrementa)
 
@@ -70,6 +74,7 @@ class CreateGeneXusObject:
         genexus_object = GeneXusObject.create_manual(
             name=normalized_name,
             object_type_id=object_type_id,
+            created_by=created_by,
             description=description,
             id=id,
         )

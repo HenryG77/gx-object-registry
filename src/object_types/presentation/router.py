@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
+from src.auth.domain.user import User
+from src.auth.presentation.dependencies import get_current_user
 from src.shared.database.connection import get_session
 from src.object_types.infrastructure.sqlalchemy_object_type_repository import (
     SQLAlchemyObjectTypeRepository,
@@ -64,6 +66,7 @@ def get_repository(
 )
 async def create_object_type(
     request: CreateObjectTypeRequest,
+    current_user: User = Depends(get_current_user),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """
@@ -71,16 +74,22 @@ async def create_object_type(
 
     Args:
         request: Datos del tipo a crear
+        current_user: Usuario autenticado
         repository: Repositorio de tipos
 
     Returns:
         Tipo de objeto creado
 
     Raises:
+        401: Si no está autenticado
         409: Si ya existe un tipo con ese nombre
     """
     use_case = CreateObjectType(repository)
-    object_type = await use_case.execute(request.name, id=request.id)
+    object_type = await use_case.execute(
+        request.name,
+        created_by=current_user.id,
+        id=request.id,
+    )
     return ObjectTypeResponse.model_validate(object_type)
 
 
@@ -157,6 +166,7 @@ async def get_object_type_by_id(
 async def update_object_type(
     object_type_id: int,
     request: UpdateObjectTypeRequest,
+    current_user: User = Depends(get_current_user),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """
@@ -165,12 +175,14 @@ async def update_object_type(
     Args:
         object_type_id: ID del tipo a actualizar
         request: Datos actualizados
+        current_user: Usuario autenticado
         repository: Repositorio de tipos
 
     Returns:
         Tipo de objeto actualizado
 
     Raises:
+        401: Si no está autenticado
         404: Si el tipo no existe
         409: Si el nuevo nombre ya existe
     """
@@ -187,6 +199,7 @@ async def update_object_type(
 )
 async def delete_object_type(
     object_type_id: int,
+    current_user: User = Depends(get_current_user),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
 ):
     """
@@ -194,9 +207,11 @@ async def delete_object_type(
 
     Args:
         object_type_id: ID del tipo a eliminar
+        current_user: Usuario autenticado
         repository: Repositorio de tipos
 
     Raises:
+        401: Si no está autenticado
         404: Si el tipo no existe
         409: Si el tipo tiene objetos relacionados
     """

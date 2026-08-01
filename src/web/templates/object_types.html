@@ -41,6 +41,7 @@
                         <th style="cursor: pointer;" onclick="sortTable('name')">
                             Nombre <span id="sort-name" class="sort-indicator"></span>
                         </th>
+                        <th>Creado por</th>
                         <th style="cursor: pointer;" onclick="sortTable('created_at')">
                             Fecha Creación <span id="sort-created_at" class="sort-indicator"></span>
                         </th>
@@ -224,7 +225,7 @@
         if (types.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                         No hay tipos registrados
                     </td>
@@ -236,9 +237,14 @@
         // Los tipos ya vienen ordenados del backend
         types.forEach(type => {
             const row = document.createElement('tr');
+            const createdBy = type.created_by
+                ? `<span class="badge bg-secondary">User #${type.created_by}</span>`
+                : '<span class="text-muted"><em>Sistema</em></span>';
+
             row.innerHTML = `
                 <td><span class="badge bg-secondary">${type.id}</span></td>
                 <td><strong>${escapeHtml(type.name)}</strong></td>
+                <td>${createdBy}</td>
                 <td>${formatDate(type.created_at)}</td>
                 <td>${formatDate(type.updated_at)}</td>
                 <td class="text-end">

@@ -1,6 +1,8 @@
 """
 Caso de uso: Crear tipo de objeto.
 """
+from typing import Optional
+
 from src.object_types.domain.object_type import ObjectType
 from src.object_types.domain.object_type_repository import ObjectTypeRepository
 from src.shared.errors.exceptions import ObjectTypeAlreadyExistsError
@@ -27,12 +29,13 @@ class CreateObjectType:
         """
         self.repository = repository
 
-    async def execute(self, name: str, id: int = None) -> ObjectType:
+    async def execute(self, name: str, created_by: Optional[int] = None, id: int = None) -> ObjectType:
         """
         Ejecuta el caso de uso.
 
         Args:
             name: Nombre del tipo de objeto a crear
+            created_by: ID del usuario que crea el tipo (opcional)
             id: ID opcional (si no se especifica, se autoincrementa)
 
         Returns:
@@ -55,7 +58,7 @@ class CreateObjectType:
             raise ObjectTypeAlreadyExistsError(normalized_name)
 
         # Crear entidad de dominio (se valida automáticamente)
-        object_type = ObjectType.create(normalized_name, id=id)
+        object_type = ObjectType.create(normalized_name, created_by=created_by, id=id)
 
         # Persistir
         created = await self.repository.create(object_type)

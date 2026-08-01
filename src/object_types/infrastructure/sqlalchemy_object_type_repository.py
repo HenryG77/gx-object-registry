@@ -48,6 +48,7 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
         return ObjectType(
             id=model.id,
             name=model.name,
+            created_by=model.created_by,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -65,6 +66,7 @@ class SQLAlchemyObjectTypeRepository(ObjectTypeRepository):
         return ObjectTypeModel(
             id=entity.id,
             name=entity.name,
+            created_by=entity.created_by,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
         )

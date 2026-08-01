@@ -83,6 +83,7 @@
                         <th style="cursor: pointer;" onclick="sortTable('source_type')">
                             Origen <span id="sort-source_type" class="sort-indicator"></span>
                         </th>
+                        <th>Creado por</th>
                         <th style="cursor: pointer;" onclick="sortTable('created_at')">
                             Fecha Creación <span id="sort-created_at" class="sort-indicator"></span>
                         </th>
@@ -342,7 +343,7 @@
         if (objects.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                         No hay objetos registrados
                     </td>
@@ -358,12 +359,17 @@
                 ? '<span class="badge bg-primary">Manual</span>'
                 : '<span class="badge bg-info">CSV</span>';
 
+            const createdBy = obj.created_by
+                ? `<span class="badge bg-secondary">User #${obj.created_by}</span>`
+                : '<span class="text-muted"><em>Sistema</em></span>';
+
             row.innerHTML = `
                 <td><span class="badge bg-secondary">${obj.id}</span></td>
                 <td><strong>${escapeHtml(obj.name)}</strong></td>
                 <td>${obj.description ? escapeHtml(obj.description) : '<em class="text-muted">Sin descripción</em>'}</td>
                 <td><span class="badge bg-secondary">${escapeHtml(obj.object_type_name || 'N/A')}</span></td>
                 <td>${sourceBadge}</td>
+                <td>${createdBy}</td>
                 <td>${formatDate(obj.created_at)}</td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-primary" onclick='editObject(${JSON.stringify(obj)})'>

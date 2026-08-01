@@ -102,6 +102,8 @@ async def root():
 # Incluir routers de módulos
 # ============================================================================
 
+from src.auth.presentation.router import router as auth_router
+from src.auth.presentation.users_router import router as users_router
 from src.object_types.presentation.router import router as object_types_router
 from src.genexus_objects.presentation.router import router as genexus_objects_router
 from src.imports.presentation.router import router as imports_router
@@ -111,6 +113,8 @@ from src.web.router import router as web_router
 app.include_router(web_router)
 
 # API REST
+app.include_router(auth_router, prefix=settings.api_prefix)
+app.include_router(users_router, prefix=settings.api_prefix)
 app.include_router(object_types_router, prefix=settings.api_prefix)
 app.include_router(genexus_objects_router, prefix=settings.api_prefix)
 app.include_router(imports_router, prefix=settings.api_prefix)

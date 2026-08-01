@@ -174,6 +174,66 @@ class ValidationError(ApplicationError):
 
 
 # ============================================================================
+# User/Auth Exceptions
+# ============================================================================
+
+
+class UserNotFoundError(ApplicationError):
+    """El usuario no existe."""
+
+    def __init__(self, message: str):
+        super().__init__(
+            code=ErrorCode.USER_NOT_FOUND,
+            message=message,
+            status_code=404,
+        )
+
+
+class UserAlreadyExistsError(ApplicationError):
+    """El usuario ya existe."""
+
+    def __init__(self, message: str):
+        super().__init__(
+            code=ErrorCode.USER_ALREADY_EXISTS,
+            message=message,
+            status_code=409,
+        )
+
+
+class InvalidCredentialsError(ApplicationError):
+    """Credenciales inválidas."""
+
+    def __init__(self):
+        super().__init__(
+            code=ErrorCode.INVALID_CREDENTIALS,
+            message="Usuario o contraseña incorrectos",
+            status_code=401,
+        )
+
+
+class UnauthorizedError(ApplicationError):
+    """Usuario no autenticado."""
+
+    def __init__(self, message: str = "No autenticado"):
+        super().__init__(
+            code=ErrorCode.UNAUTHORIZED,
+            message=message,
+            status_code=401,
+        )
+
+
+class ForbiddenError(ApplicationError):
+    """Usuario sin permisos."""
+
+    def __init__(self, message: str = "No tienes permisos para realizar esta acción"):
+        super().__init__(
+            code=ErrorCode.FORBIDDEN,
+            message=message,
+            status_code=403,
+        )
+
+
+# ============================================================================
 # Database Exceptions
 # ============================================================================
 

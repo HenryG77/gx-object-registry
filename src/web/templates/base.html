@@ -188,11 +188,38 @@
 
             <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 10px;">
 
+            <a class="nav-link {% if active_page == 'users' %}active{% endif %}" href="/web/users">
+                <i class="bi bi-people"></i>
+                <span>Usuarios</span>
+            </a>
+
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 10px;">
+
             <a class="nav-link" href="/docs" target="_blank">
                 <i class="bi bi-book"></i>
                 <span>Documentación API</span>
             </a>
         </nav>
+
+        <!-- User Profile -->
+        <div style="position: absolute; bottom: 0; width: 100%; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person-circle" style="font-size: 1.5rem;"></i>
+                </div>
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ current_user.username if current_user else 'Usuario' }}
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ current_user.email if current_user else '' }}
+                    </div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn btn-sm w-100" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </button>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -235,6 +262,26 @@
                 hour: '2-digit',
                 minute: '2-digit'
             });
+        }
+
+        // Función para cerrar sesión
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok || response.status === 204) {
+                    // Redirigir al login
+                    window.location.href = '/web/login';
+                } else {
+                    showAlert('Error al cerrar sesión', 'danger');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                showAlert('Error de conexión al cerrar sesión', 'danger');
+            }
         }
     </script>
 

@@ -11,6 +11,7 @@ alembic>=1.13.1
 # Validation
 pydantic>=2.5.3
 pydantic-settings>=2.1.0
+email-validator>=2.0.0
 
 # CSV Processing
 # pandas>=2.2.0  # Comentado: no es necesario, usamos csv nativo
@@ -21,6 +22,10 @@ structlog>=24.1.0
 
 # Environment
 python-dotenv>=1.0.0
+
+# Authentication and Security
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0,<5.0.0
 
 # Testing (development)
 pytest>=7.4.4

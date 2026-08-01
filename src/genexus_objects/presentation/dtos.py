@@ -110,6 +110,7 @@ class GeneXusObjectResponse(BaseModel):
     description: Optional[str] = Field(None, description="Descripción funcional")
     object_type_id: int = Field(..., description="ID del tipo de objeto")
     source_type: SourceTypeDTO = Field(..., description="Origen del registro")
+    created_by: Optional[int] = Field(None, description="ID del usuario que creó el objeto")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
 
