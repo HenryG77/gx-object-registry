@@ -94,7 +94,7 @@ class GeneXusObject:
             ...     description="Recupera Tasa de Interés"
             ... )
         """
-        now = datetime.utcnow()
+        now = datetime.now()
         normalized_name = name.strip()
         normalized_description = description.strip() if description and description.strip() else None
 
@@ -128,7 +128,7 @@ class GeneXusObject:
         Returns:
             Nueva instancia de GeneXusObject con source_type=CSV
         """
-        now = datetime.utcnow()
+        now = datetime.now()
         normalized_name = name.strip()
         normalized_description = description.strip() if description and description.strip() else None
 
@@ -152,7 +152,7 @@ class GeneXusObject:
         """
         normalized = new_description.strip() if new_description and new_description.strip() else None
         self.description = normalized
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
 
     def update(
         self,
@@ -181,7 +181,7 @@ class GeneXusObject:
         if object_type_id is not None:
             self.object_type_id = object_type_id
 
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
         self._validate()
 
     def __str__(self) -> str:

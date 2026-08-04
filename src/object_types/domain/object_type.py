@@ -68,7 +68,7 @@ class ObjectType:
             >>> object_type = ObjectType.create("PROCEDURE", created_by=1)
             >>> object_type_with_id = ObjectType.create("TRANSACTION", created_by=1, id=0)
         """
-        now = datetime.utcnow()
+        now = datetime.now()
         normalized_name = name.strip()
 
         return ObjectType(
@@ -90,7 +90,7 @@ class ObjectType:
             ValueError: Si el nombre es inválido
         """
         self.name = new_name.strip()
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
         self._validate()
 
     def __str__(self) -> str:
