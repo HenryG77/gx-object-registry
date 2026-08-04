@@ -49,21 +49,21 @@
         </div>
     </div>
 
-    <!-- Card: Importar CSV -->
+    <!-- Card: Usuarios -->
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                        <h6 class="text-muted mb-1">Importación</h6>
-                        <p class="mb-0">Importar desde CSV</p>
+                        <h6 class="text-muted mb-1">Usuarios</h6>
+                        <h2 class="mb-0" id="stats-users">-</h2>
                     </div>
                     <div class="bg-warning bg-opacity-10 p-3 rounded">
-                        <i class="bi bi-file-earmark-arrow-up text-warning fs-4"></i>
+                        <i class="bi bi-people text-warning fs-4"></i>
                     </div>
                 </div>
-                <a href="/web/import" class="btn btn-sm btn-outline-warning w-100">
-                    <i class="bi bi-upload"></i> Importar archivo
+                <a href="/web/users" class="btn btn-sm btn-outline-warning w-100">
+                    <i class="bi bi-arrow-right"></i> Ver todos
                 </a>
             </div>
         </div>
@@ -95,8 +95,8 @@
                     </div>
                     <div class="col-md-6">
                         <div class="d-grid">
-                            <button class="btn btn-warning" onclick="location.href='/web/import'">
-                                <i class="bi bi-file-earmark-arrow-up"></i> Importar CSV
+                            <button class="btn btn-warning" onclick="location.href='/web/users'">
+                                <i class="bi bi-people"></i> Gestionar Usuarios
                             </button>
                         </div>
                     </div>
@@ -141,10 +141,16 @@
             const objectsResponse = await fetch(`${API_BASE_URL}/objects?page_size=1`);
             const objectsData = await objectsResponse.json();
             document.getElementById('stats-objects').textContent = objectsData.total || 0;
+
+            // Cargar usuarios
+            const usersResponse = await fetch(`${API_BASE_URL}/users?page_size=1`);
+            const usersData = await usersResponse.json();
+            document.getElementById('stats-users').textContent = usersData.total || 0;
         } catch (error) {
             console.error('Error cargando estadísticas:', error);
             document.getElementById('stats-types').textContent = '?';
             document.getElementById('stats-objects').textContent = '?';
+            document.getElementById('stats-users').textContent = '?';
         }
     }
 
