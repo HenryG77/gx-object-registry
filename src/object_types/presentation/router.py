@@ -13,6 +13,9 @@ from src.shared.database.connection import get_session
 from src.object_types.infrastructure.sqlalchemy_object_type_repository import (
     SQLAlchemyObjectTypeRepository,
 )
+from src.auth.infrastructure.sqlalchemy_user_repository import (
+    SQLAlchemyUserRepository,
+)
 from src.object_types.application.create_object_type import CreateObjectType
 from src.object_types.application.list_object_types import ListObjectTypes
 from src.object_types.application.get_object_type_by_id import GetObjectTypeById
@@ -52,6 +55,21 @@ def get_repository(
     return SQLAlchemyObjectTypeRepository(session)
 
 
+def get_user_repository(
+    session: AsyncSession = Depends(get_session),
+) -> SQLAlchemyUserRepository:
+    """
+    Dependency para obtener el repositorio de usuarios.
+
+    Args:
+        session: Sesión de base de datos
+
+    Returns:
+        Repositorio de usuarios
+    """
+    return SQLAlchemyUserRepository(session)
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -68,6 +86,7 @@ async def create_object_type(
     request: CreateObjectTypeRequest,
     current_user: User = Depends(get_current_user),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
+    user_repo: SQLAlchemyUserRepository = Depends(get_user_repository),
 ):
     """
     Crea un nuevo tipo de objeto.
@@ -76,6 +95,7 @@ async def create_object_type(
         request: Datos del tipo a crear
         current_user: Usuario autenticado
         repository: Repositorio de tipos
+        user_repo: Repositorio de usuarios
 
     Returns:
         Tipo de objeto creado
@@ -90,7 +110,16 @@ async def create_object_type(
         created_by=current_user.id,
         id=request.id,
     )
-    return ObjectTypeResponse.model_validate(object_type)
+
+    # Denormalizar usuario
+    created_by_username = None
+    if object_type.created_by:
+        user = await user_repo.find_by_id(object_type.created_by)
+        created_by_username = user.username if user else None
+
+    response = ObjectTypeResponse.model_validate(object_type)
+    response.created_by_username = created_by_username
+    return response
 
 
 @router.get(
@@ -106,6 +135,7 @@ async def list_object_types(
     sort_by: str = Query("id", description="Campo por el que ordenar (id, name, created_at, updated_at)"),
     sort_order: str = Query("asc", description="Orden (asc/desc)"),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
+    user_repo: SQLAlchemyUserRepository = Depends(get_user_repository),
 ):
     """
     Lista todos los tipos de objetos con paginación.
@@ -116,6 +146,7 @@ async def list_object_types(
         sort_by: Campo por el que ordenar
         sort_order: Orden (asc/desc)
         repository: Repositorio de tipos
+        user_repo: Repositorio de usuarios
 
     Returns:
         Lista paginada de tipos
@@ -123,7 +154,22 @@ async def list_object_types(
     use_case = ListObjectTypes(repository)
     types, total = await use_case.execute(page, page_size, sort_by, sort_order)
 
-    items = [ObjectTypeResponse.model_validate(t) for t in types]
+    # Denormalizar nombres de usuarios
+    # Obtener todos los usuarios únicos
+    user_ids = list(set(t.created_by for t in types if t.created_by))
+    users_map = {}
+    for user_id in user_ids:
+        user = await user_repo.find_by_id(user_id)
+        if user:
+            users_map[user_id] = user.username
+
+    # Crear responses con nombres denormalizados
+    items = []
+    for t in types:
+        response = ObjectTypeResponse.model_validate(t)
+        response.created_by_username = users_map.get(t.created_by) if t.created_by else None
+        items.append(response)
+
     return ObjectTypeListResponse.create(items, total, page, page_size)
 
 
@@ -137,6 +183,7 @@ async def list_object_types(
 async def get_object_type_by_id(
     object_type_id: int,
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
+    user_repo: SQLAlchemyUserRepository = Depends(get_user_repository),
 ):
     """
     Obtiene un tipo de objeto por su ID.
@@ -144,6 +191,7 @@ async def get_object_type_by_id(
     Args:
         object_type_id: ID del tipo a buscar
         repository: Repositorio de tipos
+        user_repo: Repositorio de usuarios
 
     Returns:
         Tipo de objeto encontrado
@@ -153,7 +201,16 @@ async def get_object_type_by_id(
     """
     use_case = GetObjectTypeById(repository)
     object_type = await use_case.execute(object_type_id)
-    return ObjectTypeResponse.model_validate(object_type)
+
+    # Denormalizar usuario
+    created_by_username = None
+    if object_type.created_by:
+        user = await user_repo.find_by_id(object_type.created_by)
+        created_by_username = user.username if user else None
+
+    response = ObjectTypeResponse.model_validate(object_type)
+    response.created_by_username = created_by_username
+    return response
 
 
 @router.patch(
@@ -168,6 +225,7 @@ async def update_object_type(
     request: UpdateObjectTypeRequest,
     current_user: User = Depends(get_current_user),
     repository: SQLAlchemyObjectTypeRepository = Depends(get_repository),
+    user_repo: SQLAlchemyUserRepository = Depends(get_user_repository),
 ):
     """
     Actualiza un tipo de objeto.
@@ -177,6 +235,7 @@ async def update_object_type(
         request: Datos actualizados
         current_user: Usuario autenticado
         repository: Repositorio de tipos
+        user_repo: Repositorio de usuarios
 
     Returns:
         Tipo de objeto actualizado
@@ -188,7 +247,16 @@ async def update_object_type(
     """
     use_case = UpdateObjectType(repository)
     object_type = await use_case.execute(object_type_id, request.name)
-    return ObjectTypeResponse.model_validate(object_type)
+
+    # Denormalizar usuario
+    created_by_username = None
+    if object_type.created_by:
+        user = await user_repo.find_by_id(object_type.created_by)
+        created_by_username = user.username if user else None
+
+    response = ObjectTypeResponse.model_validate(object_type)
+    response.created_by_username = created_by_username
+    return response
 
 
 @router.delete(
