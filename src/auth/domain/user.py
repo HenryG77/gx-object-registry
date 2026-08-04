@@ -108,7 +108,7 @@ class User:
         Example:
             >>> user = User.create("admin", "admin@example.com", "hashed_pwd", "Admin User")
         """
-        now = datetime.utcnow()
+        now = datetime.now()
 
         return User(
             id=None,  # Se asignará al guardar
@@ -126,12 +126,12 @@ class User:
     def deactivate(self) -> None:
         """Desactiva el usuario."""
         self.is_active = False
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
 
     def activate(self) -> None:
         """Activa el usuario."""
         self.is_active = True
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
 
     def update_profile(self, full_name: Optional[str] = None, email: Optional[str] = None) -> None:
         """
@@ -150,7 +150,7 @@ class User:
         if email is not None:
             self.email = email.strip().lower()
 
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
         self._validate()
 
     def change_password(self, new_hashed_password: str) -> None:
@@ -164,12 +164,12 @@ class User:
             raise ValueError("La contraseña no puede estar vacía")
 
         self.hashed_password = new_hashed_password
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now()
 
     def record_login(self) -> None:
         """Registra el momento del último login del usuario."""
-        self.last_login = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.last_login = datetime.now()
+        self.updated_at = datetime.now()
 
     def __str__(self) -> str:
         return f"User(id={self.id}, username={self.username}, email={self.email})"
