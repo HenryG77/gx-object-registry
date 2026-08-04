@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GeneXus Object Registry{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --sidebar-width: 250px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            padding-top: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .sidebar .logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar .logo h4 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .sidebar .logo small {
+            opacity: 0.8;
+            font-size: 0.8rem;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.85);
+            padding: 12px 20px;
+            margin: 2px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: 500;
+        }
+
+        .sidebar .nav-link i {
+            font-size: 1.2rem;
+            width: 24px;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        .page-header {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .page-header p {
+            margin: 8px 0 0;
+            color: #6b7280;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 20px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 500;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            font-weight: 500;
+            border-radius: 6px;
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <h4><i class="bi bi-box-seam"></i> GeneXus Registry</h4>
+            <small>Sistema de Objetos</small>
+        </div>
+
+        <nav class="nav flex-column">
+            <a class="nav-link {% if active_page == 'home' %}active{% endif %}" href="/web">
+                <i class="bi bi-house-door"></i>
+                <span>Inicio</span>
+            </a>
+
+            <a class="nav-link {% if active_page == 'object-types' %}active{% endif %}" href="/web/object-types">
+                <i class="bi bi-tags"></i>
+                <span>Tipos de Objeto</span>
+            </a>
+
+            <a class="nav-link {% if active_page == 'objects' %}active{% endif %}" href="/web/objects">
+                <i class="bi bi-box-seam"></i>
+                <span>Objetos GeneXus</span>
+            </a>
+
+            <a class="nav-link {% if active_page == 'import' %}active{% endif %}" href="/web/import">
+                <i class="bi bi-file-earmark-arrow-up"></i>
+                <span>Importar CSV</span>
+            </a>
+
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 10px;">
+
+            <a class="nav-link {% if active_page == 'users' %}active{% endif %}" href="/web/users">
+                <i class="bi bi-people"></i>
+                <span>Usuarios</span>
+            </a>
+
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 10px;">
+
+            <a class="nav-link" href="/docs" target="_blank">
+                <i class="bi bi-book"></i>
+                <span>Documentación API</span>
+            </a>
+        </nav>
+
+        <!-- User Profile -->
+        <div style="position: absolute; bottom: 0; width: 100%; padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-person-circle" style="font-size: 1.5rem;"></i>
+                </div>
+                <div style="flex: 1; overflow: hidden;">
+                    <div style="font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ current_user.username if current_user else 'Usuario' }}
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ current_user.email if current_user else '' }}
+                    </div>
+                </div>
+            </div>
+            <button onclick="logout()" class="btn btn-sm w-100" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">
+                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script>
+        // Configuración global
+        const API_BASE_URL = '/api';
+
+        // Función helper para mostrar alertas
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            const container = document.querySelector('.main-content');
+            container.insertBefore(alertDiv, container.firstChild);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Función helper para formatear fechas
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('es-AR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Función para cerrar sesión
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+
+                if (response.ok || response.status === 204) {
+                    // Redirigir al login
+                    window.location.href = '/web/login';
+                } else {
+                    showAlert('Error al cerrar sesión', 'danger');
+                }
+            } catch (error) {
+                console.error('Error during logout:', error);
+                showAlert('Error de conexión al cerrar sesión', 'danger');
+            }
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

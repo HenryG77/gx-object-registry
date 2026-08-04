@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio - GeneXus Object Registry{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="bi bi-house-door"></i> Panel de Control</h1>
+    <p>Bienvenido, <strong>{{ current_user.full_name if current_user.full_name else current_user.username }}</strong> - Gestión centralizada de objetos GeneXus</p>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Card: Tipos de Objeto -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">Tipos de Objeto</h6>
+                        <h2 class="mb-0" id="stats-types">-</h2>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-tags text-primary fs-4"></i>
+                    </div>
+                </div>
+                <a href="/web/object-types" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="bi bi-arrow-right"></i> Ver todos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Objetos GeneXus -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">Objetos GeneXus</h6>
+                        <h2 class="mb-0" id="stats-objects">-</h2>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-box-seam text-success fs-4"></i>
+                    </div>
+                </div>
+                <a href="/web/objects" class="btn btn-sm btn-outline-success w-100">
+                    <i class="bi bi-arrow-right"></i> Ver todos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Importar CSV -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="text-muted mb-1">Importación</h6>
+                        <p class="mb-0">Importar desde CSV</p>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded">
+                        <i class="bi bi-file-earmark-arrow-up text-warning fs-4"></i>
+                    </div>
+                </div>
+                <a href="/web/import" class="btn btn-sm btn-outline-warning w-100">
+                    <i class="bi bi-upload"></i> Importar archivo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acciones Rápidas -->
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Acciones Rápidas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button class="btn btn-primary" onclick="location.href='/web/object-types?action=create'">
+                                <i class="bi bi-plus-circle"></i> Crear Tipo de Objeto
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button class="btn btn-success" onclick="location.href='/web/objects?action=create'">
+                                <i class="bi bi-plus-circle"></i> Crear Objeto GeneXus
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button class="btn btn-warning" onclick="location.href='/web/import'">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Importar CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid">
+                            <button class="btn btn-info" onclick="location.href='/docs'" target="_blank">
+                                <i class="bi bi-book"></i> Ver Documentación API
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Versión:</strong> v1.0.0</p>
+                <p class="mb-2"><strong>Entorno:</strong> <span class="badge bg-success">Development</span></p>
+                <p class="mb-0"><strong>API:</strong> <a href="/health" target="_blank">Health Check</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Cargar estadísticas al iniciar
+    async function loadStats() {
+        try {
+            // Cargar tipos
+            const typesResponse = await fetch(`${API_BASE_URL}/object-types?page_size=1`);
+            const typesData = await typesResponse.json();
+            document.getElementById('stats-types').textContent = typesData.total || 0;
+
+            // Cargar objetos
+            const objectsResponse = await fetch(`${API_BASE_URL}/objects?page_size=1`);
+            const objectsData = await objectsResponse.json();
+            document.getElementById('stats-objects').textContent = objectsData.total || 0;
+        } catch (error) {
+            console.error('Error cargando estadísticas:', error);
+            document.getElementById('stats-types').textContent = '?';
+            document.getElementById('stats-objects').textContent = '?';
+        }
+    }
+
+    // Cargar al iniciar
+    loadStats();
+</script>
+{% endblock %}
