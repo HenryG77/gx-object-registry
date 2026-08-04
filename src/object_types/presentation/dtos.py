@@ -73,6 +73,9 @@ class ObjectTypeResponse(BaseModel):
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: datetime = Field(..., description="Fecha de última actualización")
 
+    # Campos adicionales denormalizados (se llenarán en el router)
+    created_by_username: Optional[str] = Field(None, description="Nombre de usuario del creador")
+
     model_config = {"from_attributes": True}
 
 

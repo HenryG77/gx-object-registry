@@ -359,8 +359,8 @@
                 ? '<span class="badge bg-primary">Manual</span>'
                 : '<span class="badge bg-info">CSV</span>';
 
-            const createdBy = obj.created_by
-                ? `<span class="badge bg-secondary">User #${obj.created_by}</span>`
+            const createdBy = obj.created_by_username
+                ? `<span class="badge bg-secondary">${escapeHtml(obj.created_by_username)}</span>`
                 : '<span class="text-muted"><em>Sistema</em></span>';
 
             row.innerHTML = `

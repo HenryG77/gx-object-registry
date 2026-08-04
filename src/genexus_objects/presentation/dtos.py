@@ -116,6 +116,7 @@ class GeneXusObjectResponse(BaseModel):
 
     # Campos adicionales denormalizados (se llenarán en el router)
     object_type_name: Optional[str] = Field(None, description="Nombre del tipo de objeto")
+    created_by_username: Optional[str] = Field(None, description="Nombre de usuario del creador")
 
     model_config = {"from_attributes": True}
 

@@ -237,8 +237,8 @@
         // Los tipos ya vienen ordenados del backend
         types.forEach(type => {
             const row = document.createElement('tr');
-            const createdBy = type.created_by
-                ? `<span class="badge bg-secondary">User #${type.created_by}</span>`
+            const createdBy = type.created_by_username
+                ? `<span class="badge bg-secondary">${escapeHtml(type.created_by_username)}</span>`
                 : '<span class="text-muted"><em>Sistema</em></span>';
 
             row.innerHTML = `

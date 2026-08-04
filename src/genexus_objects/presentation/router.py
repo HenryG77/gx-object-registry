@@ -28,6 +28,9 @@ from src.genexus_objects.presentation.dtos import (
 from src.object_types.infrastructure.sqlalchemy_object_type_repository import (
     SQLAlchemyObjectTypeRepository,
 )
+from src.auth.infrastructure.sqlalchemy_user_repository import (
+    SQLAlchemyUserRepository,
+)
 from src.shared.database.connection import get_session
 from src.shared.logging.logger import logger
 
@@ -65,6 +68,21 @@ def get_object_type_repository(
     return SQLAlchemyObjectTypeRepository(session)
 
 
+def get_user_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> SQLAlchemyUserRepository:
+    """
+    Dependency para obtener el repositorio de usuarios.
+
+    Args:
+        session: Sesión de base de datos
+
+    Returns:
+        Repositorio de usuarios
+    """
+    return SQLAlchemyUserRepository(session)
+
+
 @router.post(
     "",
     response_model=GeneXusObjectResponse,
@@ -82,6 +100,10 @@ async def create_genexus_object(
     object_type_repo: Annotated[
         SQLAlchemyObjectTypeRepository,
         Depends(get_object_type_repository),
+    ],
+    user_repo: Annotated[
+        SQLAlchemyUserRepository,
+        Depends(get_user_repository),
     ],
 ) -> GeneXusObjectResponse:
     """
@@ -121,8 +143,15 @@ async def create_genexus_object(
     object_type = await object_type_repo.find_by_id(genexus_object.object_type_id)
     object_type_name = object_type.name if object_type else None
 
+    # Obtener el nombre del usuario para denormalizar
+    created_by_username = None
+    if genexus_object.created_by:
+        user = await user_repo.find_by_id(genexus_object.created_by)
+        created_by_username = user.username if user else None
+
     response = GeneXusObjectResponse.model_validate(genexus_object)
     response.object_type_name = object_type_name
+    response.created_by_username = created_by_username
 
     return response
 
@@ -141,6 +170,10 @@ async def search_genexus_objects(
     object_type_repo: Annotated[
         SQLAlchemyObjectTypeRepository,
         Depends(get_object_type_repository),
+    ],
+    user_repo: Annotated[
+        SQLAlchemyUserRepository,
+        Depends(get_user_repository),
     ],
     search: Annotated[str | None, Query(description="Búsqueda en nombre y descripción")] = None,
     name: Annotated[str | None, Query(description="Filtro por nombre (búsqueda parcial)")] = None,
@@ -203,11 +236,21 @@ async def search_genexus_objects(
         if obj_type:
             types_map[type_id] = obj_type.name
 
+    # Denormalizar nombres de usuarios
+    # Obtener todos los usuarios únicos
+    user_ids = list(set(obj.created_by for obj in objects if obj.created_by))
+    users_map = {}
+    for user_id in user_ids:
+        user = await user_repo.find_by_id(user_id)
+        if user:
+            users_map[user_id] = user.username
+
     # Crear responses con nombres denormalizados
     items = []
     for obj in objects:
         response = GeneXusObjectResponse.model_validate(obj)
         response.object_type_name = types_map.get(obj.object_type_id)
+        response.created_by_username = users_map.get(obj.created_by) if obj.created_by else None
         items.append(response)
 
     return GeneXusObjectListResponse.create(
@@ -234,6 +277,10 @@ async def get_genexus_object(
         SQLAlchemyObjectTypeRepository,
         Depends(get_object_type_repository),
     ],
+    user_repo: Annotated[
+        SQLAlchemyUserRepository,
+        Depends(get_user_repository),
+    ],
 ) -> GeneXusObjectResponse:
     """
     Obtiene un objeto GeneXus por su ID.
@@ -258,8 +305,15 @@ async def get_genexus_object(
     object_type = await object_type_repo.find_by_id(genexus_object.object_type_id)
     object_type_name = object_type.name if object_type else None
 
+    # Denormalizar usuario
+    created_by_username = None
+    if genexus_object.created_by:
+        user = await user_repo.find_by_id(genexus_object.created_by)
+        created_by_username = user.username if user else None
+
     response = GeneXusObjectResponse.model_validate(genexus_object)
     response.object_type_name = object_type_name
+    response.created_by_username = created_by_username
 
     return response
 
@@ -281,6 +335,10 @@ async def update_genexus_object(
     object_type_repo: Annotated[
         SQLAlchemyObjectTypeRepository,
         Depends(get_object_type_repository),
+    ],
+    user_repo: Annotated[
+        SQLAlchemyUserRepository,
+        Depends(get_user_repository),
     ],
 ) -> GeneXusObjectResponse:
     """
@@ -322,8 +380,15 @@ async def update_genexus_object(
     object_type = await object_type_repo.find_by_id(genexus_object.object_type_id)
     object_type_name = object_type.name if object_type else None
 
+    # Denormalizar usuario
+    created_by_username = None
+    if genexus_object.created_by:
+        user = await user_repo.find_by_id(genexus_object.created_by)
+        created_by_username = user.username if user else None
+
     response = GeneXusObjectResponse.model_validate(genexus_object)
     response.object_type_name = object_type_name
+    response.created_by_username = created_by_username
 
     return response
 
