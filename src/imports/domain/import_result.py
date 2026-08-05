@@ -28,20 +28,13 @@ class ImportResult:
     Resultado de una importación CSV.
 
     Registra estadísticas y errores del proceso de importación.
+    Nota: El proceso elimina TODOS los objetos existentes antes de importar,
+    por lo que todos los objetos importados son creados nuevos.
     """
     total_rows: int = 0
     created_count: int = 0
-    updated_count: int = 0
-    skipped_count: int = 0
     error_count: int = 0
     errors: List[ImportError] = field(default_factory=list)
-    created_ids: List[UUID] = field(default_factory=list)
-    updated_ids: List[UUID] = field(default_factory=list)
-
-    @property
-    def success_count(self) -> int:
-        """Total de registros procesados exitosamente."""
-        return self.created_count + self.updated_count
 
     @property
     def has_errors(self) -> bool:
@@ -56,21 +49,6 @@ class ImportResult:
             object_id: ID del objeto creado
         """
         self.created_count += 1
-        self.created_ids.append(object_id)
-
-    def add_updated(self, object_id: UUID) -> None:
-        """
-        Registra un objeto actualizado.
-
-        Args:
-            object_id: ID del objeto actualizado
-        """
-        self.updated_count += 1
-        self.updated_ids.append(object_id)
-
-    def add_skipped(self) -> None:
-        """Registra una fila omitida (por ejemplo, datos inválidos)."""
-        self.skipped_count += 1
 
     def add_error(
         self,
@@ -106,10 +84,7 @@ class ImportResult:
         """
         return {
             "total_rows": self.total_rows,
-            "success_count": self.success_count,
             "created_count": self.created_count,
-            "updated_count": self.updated_count,
-            "skipped_count": self.skipped_count,
             "error_count": self.error_count,
             "has_errors": self.has_errors,
         }

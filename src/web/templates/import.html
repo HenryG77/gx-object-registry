@@ -115,6 +115,510 @@ Dashboard;Panel principal del sistema;3</code></pre>
                 </button>
             </div>
         </div>
+
+        <!-- Script para Generar CSV -->
+        <div class="card mt-4">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-code-square"></i> Script para Generar CSV desde la Knowledge Base
+            </div>
+            <div class="card-body">
+                <!-- Instrucciones -->
+                <div class="alert alert-info mb-3">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-info-circle-fill"></i> Pasos para generar el CSV de forma segura
+                    </h6>
+
+                    <ol class="mb-2">
+                        <li class="mb-3">
+                            <strong>Copiar el archivo objects.dat a una carpeta temporal</strong>
+                            <div class="bg-light p-2 rounded mt-2 small">
+                                <div class="mb-2">
+                                    <strong>Ubicación en tu Knowledge Base:</strong><br>
+                                    <code>D:\Kb's\Desarrollo\Nucleo_Java\objects.dat</code>
+                                </div>
+                                <div>
+                                    <strong>Copiarlo a una carpeta aislada (ejemplo):</strong><br>
+                                    <code>C:\Users\operador\Desktop\Analizar\objects.dat</code>
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-shield-check"></i>
+                                Esto asegura que tu archivo original no sea modificado
+                            </div>
+                        </li>
+
+                        <li class="mb-3">
+                            <strong>Abrir PowerShell en la carpeta temporal</strong>
+                            <div class="bg-light p-2 rounded mt-2">
+                                <code>cd C:\Users\operador\Desktop\Analizar</code>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                Navega a la carpeta donde copiaste objects.dat
+                            </div>
+                        </li>
+
+                        <li class="mb-2">
+                            <strong>Copiar y pegar el script en PowerShell</strong>
+                            <div class="bg-light p-2 rounded mt-2 small">
+                                <ol class="mb-0 ps-3">
+                                    <li>Hacer clic en "Copiar Script" (o descargar como .txt)</li>
+                                    <li>Pegar directamente en la ventana de PowerShell</li>
+                                    <li>Presionar Enter para ejecutar</li>
+                                </ol>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="bi bi-eye"></i>
+                                El script solo <strong>LEE</strong> el archivo, no lo modifica
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="alert alert-success mb-0 small">
+                        <strong>✓ Resultado:</strong> Se generará <code>genexus_objects_import.csv</code>
+                        en la carpeta temporal, listo para importar
+                    </div>
+                </div>
+
+                <!-- Código del Script -->
+                <pre class="bg-dark text-light p-4 rounded mb-3"
+                     style="max-height: 400px; overflow-y: auto; font-size: 0.85rem;"><code id="genexus-script">&amp; {
+    Set-StrictMode -Version Latest
+    $ErrorActionPreference = "Stop"
+
+    # ============================================================
+    # CONFIGURACIÓN
+    # ============================================================
+
+    $archivoEntrada = ".\OBJECTS.DAT"
+    $archivoSalida  = ".\genexus_objects_import.csv"
+
+    $modeloObjetivo = 1
+
+    # Estructura detectada en OBJECTS.DAT.
+    $tamanoRegistro        = 395
+    $offsetEstado          = 0
+    $offsetModelo          = 1
+    $offsetTipoFisico      = 3
+    $offsetObjectId        = 5
+    $offsetNombre          = 7
+    $tamanoNombre          = 128
+    $offsetDescripcion     = 135
+    $tamanoDescripcion     = 256
+    $offsetMarcadorInterno = 394
+
+    $tiposValidos = @(
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+        10, 11, 12, 13, 14,
+        17, 18, 19, 20, 21, 22, 23,
+        24, 25, 26, 28
+    )
+
+    # ============================================================
+    # VALIDAR ARCHIVO DE ENTRADA
+    # ============================================================
+
+    if (-not (Test-Path -LiteralPath $archivoEntrada -PathType Leaf)) {
+        throw "No se encontró OBJECTS.DAT en la carpeta actual."
+    }
+
+    $rutaEntrada = (Resolve-Path -LiteralPath $archivoEntrada).Path
+
+    $rutaSalida = Join-Path `
+        -Path (Get-Location).Path `
+        -ChildPath "genexus_objects_import.csv"
+
+    # Eliminar un resultado anterior.
+    if (Test-Path -LiteralPath $rutaSalida) {
+        try {
+            Remove-Item `
+                -LiteralPath $rutaSalida `
+                -Force
+        }
+        catch {
+            throw @"
+No se puede reemplazar el archivo:
+
+$rutaSalida
+
+Cierre el CSV en Excel u otro programa y vuelva a ejecutar.
+"@
+        }
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes($rutaEntrada)
+
+    if ($bytes.Length -lt $tamanoRegistro) {
+        throw "OBJECTS.DAT está vacío o tiene un tamaño inválido."
+    }
+
+    $encoding = [System.Text.Encoding]::GetEncoding(1252)
+
+    $registros = @{}
+    $marcadoresDesconocidos = @{}
+
+    Write-Host ""
+    Write-Host "============================================"
+    Write-Host "EXTRACCIÓN DE OBJETOS GENEXUS 9"
+    Write-Host "============================================"
+    Write-Host ""
+    Write-Host "Archivo de entrada:"
+    Write-Host $rutaEntrada
+    Write-Host ""
+    Write-Host "Analizando registros..."
+    Write-Host ""
+
+    # ============================================================
+    # RECORRER OBJECTS.DAT
+    # ============================================================
+
+    for (
+        $inicio = 0;
+        ($inicio + $tamanoRegistro) -le $bytes.Length;
+        $inicio += $tamanoRegistro
+    ) {
+        $estado = [int]$bytes[
+            $inicio + $offsetEstado
+        ]
+
+        # Solamente registros activos.
+        if ($estado -ne 0) {
+            continue
+        }
+
+        $modelId = [System.BitConverter]::ToUInt16(
+            $bytes,
+            $inicio + $offsetModelo
+        )
+
+        if ($modelId -ne $modeloObjetivo) {
+            continue
+        }
+
+        $tipoFisico = [System.BitConverter]::ToUInt16(
+            $bytes,
+            $inicio + $offsetTipoFisico
+        )
+
+        if (-not ($tiposValidos -contains [int]$tipoFisico)) {
+            continue
+        }
+
+        $objectId = [System.BitConverter]::ToUInt16(
+            $bytes,
+            $inicio + $offsetObjectId
+        )
+
+        if ($objectId -le 0) {
+            continue
+        }
+
+        # ========================================================
+        # RECUPERAR NOMBRE
+        # ========================================================
+
+        $campoNombre = $encoding.GetString(
+            $bytes,
+            $inicio + $offsetNombre,
+            $tamanoNombre
+        )
+
+        $nombre = $campoNombre.Trim(
+            [char[]]@(
+                [char]0,
+                [char]32
+            )
+        )
+
+        if (
+            [string]::IsNullOrWhiteSpace($nombre) -or
+            $nombre -notmatch '^[A-Za-z][A-Za-z0-9_.]{1,127}$'
+        ) {
+            continue
+        }
+
+        # ========================================================
+        # RECUPERAR DESCRIPCIÓN
+        # ========================================================
+
+        $campoDescripcion = $encoding.GetString(
+            $bytes,
+            $inicio + $offsetDescripcion,
+            $tamanoDescripcion
+        )
+
+        $descripcion = $campoDescripcion.Trim(
+            [char[]]@(
+                [char]0,
+                [char]32
+            )
+        )
+
+        $descripcion = $descripcion -replace '[\r\n\t]+', ' '
+        $descripcion = $descripcion -replace '[\x00-\x1F]+', ' '
+        $descripcion = $descripcion -replace '\s{2,}', ' '
+        $descripcion = $descripcion.Trim()
+
+        # ========================================================
+        # DETERMINAR TIPO FINAL
+        # ========================================================
+
+        $marcadorInterno = [int]$bytes[
+            $inicio + $offsetMarcadorInterno
+        ]
+
+        $tipoFinal = [int]$tipoFisico
+
+        # Para los registros físicamente almacenados como clase 1:
+        #
+        # marcador 4 = Procedure → ID 1
+        # marcador 1 = Report    → ID 2
+        if ($tipoFisico -eq 1) {
+            switch ($marcadorInterno) {
+                1 {
+                    $tipoFinal = 2
+                }
+
+                4 {
+                    $tipoFinal = 1
+                }
+
+                default {
+                    $tipoFinal = 1
+
+                    if (-not $marcadoresDesconocidos.ContainsKey(
+                        $marcadorInterno
+                    )) {
+                        $marcadoresDesconocidos[$marcadorInterno] = 0
+                    }
+
+                    $marcadoresDesconocidos[$marcadorInterno]++
+                }
+            }
+        }
+
+        # Evitar registros duplicados.
+        $clave = "{0}|{1}" -f `
+            $objectId,
+            $nombre.ToUpperInvariant()
+
+        if (-not $registros.ContainsKey($clave)) {
+            $registros[$clave] = [PSCustomObject]@{
+                name          = $nombre
+                description   = $descripcion
+                objectType    = $tipoFinal
+
+                # Campos internos que no se exportan.
+                _objectId     = [int]$objectId
+                _rawType      = [int]$tipoFisico
+                _marker       = $marcadorInterno
+                _offset       = [int64]$inicio
+            }
+        }
+    }
+
+    # ============================================================
+    # PREPARAR RESULTADO
+    # ============================================================
+
+    $resultadoCompleto = @(
+        $registros.Values |
+            Sort-Object `
+                objectType,
+                name,
+                _objectId
+    )
+
+    if ($resultadoCompleto.Count -eq 0) {
+        throw "No se recuperaron objetos válidos desde OBJECTS.DAT."
+    }
+
+    # Exactamente los tres encabezados esperados por el importador.
+    $resultadoFinal = @(
+        $resultadoCompleto |
+            Select-Object `
+                @{Name = "name"; Expression = {
+                    $_.name
+                }},
+                @{Name = "description"; Expression = {
+                    $_.description
+                }},
+                @{Name = "objectType"; Expression = {
+                    [int]$_.objectType
+                }}
+    )
+
+    # ============================================================
+    # GENERAR CSV
+    # ============================================================
+
+    $contenidoCsv = @(
+        $resultadoFinal |
+            ConvertTo-Csv `
+                -NoTypeInformation `
+                -Delimiter ";"
+    )
+
+    # UTF-8 sin BOM.
+    $utf8SinBom = [System.Text.UTF8Encoding]::new($false)
+
+    try {
+        [System.IO.File]::WriteAllLines(
+            $rutaSalida,
+            $contenidoCsv,
+            $utf8SinBom
+        )
+    }
+    catch {
+        throw @"
+No se pudo escribir el archivo:
+
+$rutaSalida
+
+Verifique que no esté abierto en Excel.
+
+Error:
+$($_.Exception.Message)
+"@
+    }
+
+    if (-not (Test-Path -LiteralPath $rutaSalida)) {
+        throw "La exportación terminó, pero el CSV no fue creado."
+    }
+
+    $archivoGenerado = Get-Item `
+        -LiteralPath $rutaSalida
+
+    if ($archivoGenerado.Length -eq 0) {
+        throw "El CSV fue creado, pero está vacío."
+    }
+
+    # ============================================================
+    # VALIDACIONES
+    # ============================================================
+
+    $procedures = @(
+        $resultadoCompleto |
+            Where-Object {
+                $_.objectType -eq 1
+            }
+    )
+
+    $reports = @(
+        $resultadoCompleto |
+            Where-Object {
+                $_.objectType -eq 2
+            }
+    )
+
+    # Verificar que no exista BOM.
+    $primerosBytes = [System.IO.File]::ReadAllBytes(
+        $rutaSalida
+    )
+
+    $tieneBom = (
+        $primerosBytes.Length -ge 3 -and
+        $primerosBytes[0] -eq 239 -and
+        $primerosBytes[1] -eq 187 -and
+        $primerosBytes[2] -eq 191
+    )
+
+    $primeraLinea = Get-Content `
+        -LiteralPath $rutaSalida `
+        -TotalCount 1
+
+    Write-Host ""
+    Write-Host "============================================"
+    Write-Host "EXPORTACIÓN COMPLETADA"
+    Write-Host "============================================"
+    Write-Host ""
+    Write-Host "Modelo exportado:       $modeloObjetivo"
+    Write-Host "Objetos exportados:     $($resultadoFinal.Count)"
+    Write-Host "Procedures con ID 1:    $($procedures.Count)"
+    Write-Host "Reports con ID 2:       $($reports.Count)"
+    Write-Host ""
+    Write-Host "CSV generado:"
+    Write-Host $archivoGenerado.FullName
+    Write-Host ""
+    Write-Host "Tamaño:"
+    Write-Host "$($archivoGenerado.Length) bytes"
+    Write-Host ""
+    Write-Host "Encabezado generado:"
+    Write-Host $primeraLinea
+    Write-Host ""
+    Write-Host "Contiene BOM:"
+    Write-Host $tieneBom
+    Write-Host ""
+
+    Write-Host "Resumen por tipo:"
+    Write-Host ""
+
+    $resultadoFinal |
+        Group-Object objectType |
+        Sort-Object {
+            [int]$_.Name
+        } |
+        ForEach-Object {
+            [PSCustomObject]@{
+                objectType = [int]$_.Name
+                cantidad   = $_.Count
+                ejemplos   = (
+                    $_.Group |
+                        Select-Object -First 5 |
+                        ForEach-Object {
+                            $_.name
+                        }
+                ) -join ", "
+            }
+        } |
+        Format-Table -AutoSize
+
+    Write-Host ""
+    Write-Host "Comprobación de objetos conocidos:"
+    Write-Host ""
+
+    $resultadoCompleto |
+        Where-Object {
+            $_.name -ieq "PerAc005" -or
+            $_.name -ieq "PerLs005"
+        } |
+        Select-Object `
+            name,
+            description,
+            objectType,
+            _rawType,
+            _marker,
+            _objectId |
+        Format-Table -AutoSize
+
+    if ($marcadoresDesconocidos.Count -gt 0) {
+        Write-Host ""
+        Write-Warning "Se encontraron marcadores internos no identificados:"
+        Write-Host ""
+
+        $marcadoresDesconocidos.GetEnumerator() |
+            ForEach-Object {
+                [PSCustomObject]@{
+                    marcador = $_.Key
+                    cantidad = $_.Value
+                }
+            } |
+            Sort-Object marcador |
+            Format-Table -AutoSize
+    }
+}
+</code></pre>
+
+                <!-- Botones de Acción -->
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="copyScript()" id="copy-btn">
+                        <i class="bi bi-clipboard"></i> <span id="copy-text">Copiar Script</span>
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="downloadScript()">
+                        <i class="bi bi-download"></i> Descargar como .txt
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -241,16 +745,13 @@ Dashboard;Panel principal del sistema;3</code></pre>
             <div class="alert alert-${alertClass}">
                 <h5><i class="bi bi-${icon}"></i> Importación Completada</h5>
                 <div class="row mt-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <strong>Total:</strong> ${result.total_rows}
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <strong>Creados:</strong> <span class="badge bg-success">${result.created_count}</span>
                     </div>
-                    <div class="col-md-3">
-                        <strong>Actualizados:</strong> <span class="badge bg-info">${result.updated_count}</span>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <strong>Errores:</strong> <span class="badge bg-danger">${result.error_count}</span>
                     </div>
                 </div>
@@ -315,6 +816,39 @@ Dashboard;Panel principal del sistema;3`;
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Copiar script al portapapeles
+    function copyScript() {
+        const code = document.getElementById('genexus-script').textContent;
+        const btn = document.getElementById('copy-btn');
+        const text = document.getElementById('copy-text');
+
+        navigator.clipboard.writeText(code).then(() => {
+            // Feedback visual
+            text.textContent = '¡Copiado!';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+
+            // Restaurar después de 2 segundos
+            setTimeout(() => {
+                text.textContent = 'Copiar Script';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 2000);
+        }).catch(err => {
+            alert('Error al copiar: ' + err);
+        });
+    }
+
+    // Descargar script como archivo .txt
+    function downloadScript() {
+        const code = document.getElementById('genexus-script').textContent;
+        const blob = new Blob([code], { type: 'text/plain;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'extract_objects_genexus.txt';
+        link.click();
     }
 
     // Cargar mappings al iniciar

@@ -18,16 +18,18 @@ class ImportCSV:
     """
     Caso de uso para importar objetos GeneXus desde un archivo CSV.
 
+    IMPORTANTE: Esta operación ELIMINA TODOS los objetos existentes
+    y los reemplaza con los datos del CSV. Los IDs se reinician desde 1.
+
     Flujo:
     1. Parsear el archivo CSV
     2. Cargar tipos de objeto para mapping
-    3. Para cada fila:
+    3. Eliminar TODOS los objetos existentes
+    4. Para cada fila:
        a. Validar formato
        b. Mapear código de tipo a ID
-       c. Verificar si el objeto existe (por name + type)
-       d. Si existe: actualizar
-       e. Si no existe: crear
-    4. Retornar resultado con estadísticas y errores
+       c. Crear nuevo objeto
+    5. Retornar resultado con estadísticas y errores
     """
 
     def __init__(
@@ -242,45 +244,3 @@ class ImportCSV:
                 },
             )
 
-    async def _update_object(
-        self,
-        existing_object: GeneXusObject,
-        row: CSVRow,
-        result: ImportResult,
-    ) -> None:
-        """
-        Actualiza un objeto existente con los datos de la fila CSV.
-
-        Args:
-            existing_object: Objeto existente en BD
-            row: Fila con nuevos datos
-            result: Resultado acumulado
-        """
-        try:
-            # Actualizar campos (manteniendo el ID y source_type original)
-            existing_object.update(
-                name=row.name,
-                description=row.description,
-            )
-
-            # Persistir
-            updated = await self.genexus_object_repository.update(existing_object)
-
-            result.add_updated(updated.id)
-
-            logger.debug(
-                "Object updated from CSV",
-                row_number=row.row_number,
-                object_id=str(updated.id),
-                name=updated.name,
-            )
-
-        except Exception as e:
-            result.add_error(
-                row_number=row.row_number,
-                message=f"Error actualizando objeto: {str(e)}",
-                raw_data={
-                    "name": row.name,
-                    "objectType": row.object_type_code,
-                },
-            )

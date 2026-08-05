@@ -18,15 +18,10 @@ class ImportResultResponse(BaseModel):
     """Response del resultado de la importación."""
 
     total_rows: int = Field(..., description="Total de filas procesadas")
-    success_count: int = Field(..., description="Total de filas procesadas exitosamente")
     created_count: int = Field(..., description="Objetos creados")
-    updated_count: int = Field(..., description="Objetos actualizados")
-    skipped_count: int = Field(..., description="Filas omitidas")
     error_count: int = Field(..., description="Filas con errores")
     has_errors: bool = Field(..., description="Indica si hubo errores")
     errors: List[ImportErrorDTO] = Field(default_factory=list, description="Lista de errores")
-    created_ids: List[int] = Field(default_factory=list, description="IDs de objetos creados")
-    updated_ids: List[int] = Field(default_factory=list, description="IDs de objetos actualizados")
 
 
 class ObjectTypeMappingDTO(BaseModel):

@@ -105,7 +105,7 @@ async def get_object_type_mappings(
     response_model=ImportResultResponse,
     status_code=status.HTTP_200_OK,
     summary="Importar objetos desde CSV",
-    description="Importa objetos GeneXus desde un archivo CSV. Crea objetos nuevos o actualiza existentes.",
+    description="Importa objetos GeneXus desde un archivo CSV. ELIMINA TODOS los objetos existentes y los reemplaza con los del CSV.",
 )
 async def import_csv_file(
     file: Annotated[UploadFile, File(description="Archivo CSV con objetos GeneXus")],
@@ -122,6 +122,10 @@ async def import_csv_file(
     """
     Importa objetos GeneXus desde un archivo CSV.
 
+    ADVERTENCIA: Esta operación ELIMINA TODOS los objetos existentes en la base de datos
+    y los reemplaza con los datos del CSV. Los IDs se reiniciarán desde 1.
+    Esta acción NO puede deshacerse.
+
     El CSV debe tener el siguiente formato:
     - Delimitador: punto y coma (;)
     - Encoding: UTF-8
@@ -129,8 +133,8 @@ async def import_csv_file(
     - objectType: código numérico (usar /imports/mappings para ver códigos disponibles)
 
     Estrategia de importación:
-    - Si el objeto (name + type) ya existe: se actualiza
-    - Si no existe: se crea nuevo
+    1. Eliminar TODOS los objetos existentes
+    2. Crear nuevos objetos desde el CSV
 
     Args:
         file: Archivo CSV subido
