@@ -198,10 +198,7 @@ async def import_csv_file(
         # Convertir a DTO
         response = ImportResultResponse(
             total_rows=result.total_rows,
-            success_count=result.success_count,
             created_count=result.created_count,
-            updated_count=result.updated_count,
-            skipped_count=result.skipped_count,
             error_count=result.error_count,
             has_errors=result.has_errors,
             errors=[
@@ -213,8 +210,6 @@ async def import_csv_file(
                 )
                 for err in result.errors
             ],
-            created_ids=result.created_ids,
-            updated_ids=result.updated_ids,
         )
 
         logger.info(
