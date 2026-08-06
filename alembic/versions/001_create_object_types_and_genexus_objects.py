@@ -22,7 +22,7 @@ def upgrade() -> None:
     # Crear tabla object_types
     op.create_table(
         'object_types',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, comment='Identificador único del tipo de objeto'),
+        sa.Column('id', sa.Integer(), nullable=False, autoincrement=False, comment='Identificador único del tipo de objeto (autoincremental desde 0)'),
         sa.Column('name', sa.String(length=100), nullable=False, comment='Nombre del tipo de objeto (ej: PROCEDURE, TRANSACTION)'),
         sa.Column('created_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de creación'),
         sa.Column('updated_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de última actualización'),
@@ -42,10 +42,10 @@ def upgrade() -> None:
     # Crear tabla genexus_objects
     op.create_table(
         'genexus_objects',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False, comment='Identificador único del objeto'),
+        sa.Column('id', sa.Integer(), nullable=False, autoincrement=False, comment='Identificador único del objeto (autoincremental)'),
         sa.Column('name', sa.String(length=128), nullable=False, comment='Nombre técnico del objeto GeneXus (ej: AhrPr001)'),
         sa.Column('description', sa.Text(), nullable=True, comment='Descripción funcional del objeto'),
-        sa.Column('object_type_id', postgresql.UUID(as_uuid=True), nullable=False, comment='ID del tipo de objeto (FK a object_types)'),
+        sa.Column('object_type_id', sa.Integer(), nullable=False, comment='ID del tipo de objeto (FK a object_types)'),
         sa.Column('source_type', sa.Enum('MANUAL', 'CSV', name='source_type_enum', create_type=True), nullable=False, comment='Origen del registro (MANUAL o CSV)'),
         sa.Column('created_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de creación'),
         sa.Column('updated_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de última actualización'),
