@@ -146,3 +146,36 @@ El servidor estará disponible en:
 
 **Nota**: Para acceder desde Windows, asegúrate de tener configurado el port forwarding en VirtualBox para el puerto 8000.
 
+---
+
+## 16. Actualizar código cuando hay cambios (Opcional)
+
+Cuando se hacen cambios en el repositorio, ejecuta estos comandos para actualizar:
+
+```bash
+cd ~/gx-object-registry
+
+# Detener el servidor (Ctrl+C si está corriendo)
+
+# Actualizar código desde GitHub
+git pull
+
+# Activar entorno virtual
+source venv/bin/activate
+
+# Aplicar nuevas migraciones (si las hay)
+alembic upgrade head
+
+# Reiniciar el servidor
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Si ya tienes datos y hay problemas con las secuencias
+
+Si después de actualizar e importar datos aparece un error sobre secuencias, ejecuta:
+
+```bash
+sudo -u postgres psql -d gx_object_registry -c "SELECT setval('genexus_objects_id_seq', COALESCE((SELECT MAX(id) FROM genexus_objects), 0) + 1, false);"
+sudo -u postgres psql -d gx_object_registry -c "SELECT setval('object_types_id_seq', COALESCE((SELECT MAX(id) FROM object_types), 0) + 1, false);"
+```
+
