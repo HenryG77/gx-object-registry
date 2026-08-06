@@ -60,3 +60,46 @@ sudo -u postgres psql -c "CREATE DATABASE gx_object_registry OWNER gxuser;"
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE gx_object_registry TO gxuser;"
 ```
 
+## 9. Clonar repositorio
+
+```bash
+cd ~
+git clone https://github.com/HenryG77/gx-object-registry.git
+cd gx-object-registry
+```
+
+## 10. Crear entorno virtual
+
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+```
+
+## 11. Instalar dependencias
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+## 12. Configurar archivo .env
+
+Generar SECRET_KEY:
+```bash
+python3.11 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Copiar y editar archivo .env:
+```bash
+cp .env.example .env
+nano .env
+```
+
+Editar las siguientes variables:
+```
+DATABASE_URL=postgresql+asyncpg://gxuser:gxpassword@localhost:5432/gx_object_registry
+APP_ENV=production
+DEBUG=false
+SECRET_KEY=CAMBIAR_ESTA_CLAVE_SECRETA
+```
+

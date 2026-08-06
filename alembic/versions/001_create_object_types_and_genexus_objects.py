@@ -39,9 +39,6 @@ def upgrade() -> None:
         unique=True
     )
 
-    # Crear tipo ENUM para source_type
-    sa.Enum('MANUAL', 'CSV', name='source_type_enum', create_type=True).create(op.get_bind())
-
     # Crear tabla genexus_objects
     op.create_table(
         'genexus_objects',
@@ -49,7 +46,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(length=128), nullable=False, comment='Nombre técnico del objeto GeneXus (ej: AhrPr001)'),
         sa.Column('description', sa.Text(), nullable=True, comment='Descripción funcional del objeto'),
         sa.Column('object_type_id', postgresql.UUID(as_uuid=True), nullable=False, comment='ID del tipo de objeto (FK a object_types)'),
-        sa.Column('source_type', sa.Enum('MANUAL', 'CSV', name='source_type_enum', create_type=False), nullable=False, comment='Origen del registro (MANUAL o CSV)'),
+        sa.Column('source_type', sa.Enum('MANUAL', 'CSV', name='source_type_enum', create_type=True), nullable=False, comment='Origen del registro (MANUAL o CSV)'),
         sa.Column('created_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de creación'),
         sa.Column('updated_at', sa.DateTime(timezone=False), server_default=sa.text('now()'), nullable=False, comment='Fecha de última actualización'),
         sa.ForeignKeyConstraint(['object_type_id'], ['object_types.id'], ondelete='RESTRICT'),
