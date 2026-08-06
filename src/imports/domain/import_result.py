@@ -3,7 +3,6 @@ Resultado de la importación de objetos desde CSV.
 """
 from dataclasses import dataclass, field
 from typing import List, Optional
-from uuid import UUID
 
 
 @dataclass
@@ -41,7 +40,7 @@ class ImportResult:
         """Indica si hubo errores durante la importación."""
         return self.error_count > 0
 
-    def add_created(self, object_id: UUID) -> None:
+    def add_created(self, object_id: int) -> None:
         """
         Registra un objeto creado.
 

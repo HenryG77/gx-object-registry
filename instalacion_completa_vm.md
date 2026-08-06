@@ -80,6 +80,7 @@ source venv/bin/activate
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
+pip install jinja2
 ```
 
 ## 12. Configurar archivo .env
@@ -102,4 +103,46 @@ APP_ENV=production
 DEBUG=false
 SECRET_KEY=CAMBIAR_ESTA_CLAVE_SECRETA
 ```
+
+## 13. Ejecutar migraciones de base de datos
+
+```bash
+alembic upgrade head
+```
+
+## 14. Crear usuario administrador
+
+```bash
+python scripts/create_admin.py
+```
+
+El script te pedirá:
+
+- **Username**: Nombre de usuario (3-50 caracteres)
+- **Email**: Correo electrónico válido
+- **Nombre completo**: Opcional
+- **Contraseña**: Mínimo 6 caracteres
+
+Ejemplo de credenciales:
+
+```text
+Username: admin
+Email: admin@example.com
+Nombre completo: Administrador
+Contraseña: admin123
+```
+
+## 15. Iniciar el servidor
+
+```bash
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+El servidor estará disponible en:
+
+- **Aplicación web**: <http://localhost:8000/>
+- **Documentación API**: <http://localhost:8000/docs>
+- **ReDoc**: <http://localhost:8000/redoc>
+
+**Nota**: Para acceder desde Windows, asegúrate de tener configurado el port forwarding en VirtualBox para el puerto 8000.
 
