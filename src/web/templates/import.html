@@ -823,21 +823,56 @@ Dashboard;Panel principal del sistema;3`;
         const btn = document.getElementById('copy-btn');
         const text = document.getElementById('copy-text');
 
-        navigator.clipboard.writeText(code).then(() => {
-            // Feedback visual
-            text.textContent = '¡Copiado!';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
+        // Intentar con navigator.clipboard (HTTPS/localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code).then(() => {
+                showCopySuccess(btn, text);
+            }).catch(err => {
+                // Fallback si falla
+                copyWithFallback(code, btn, text);
+            });
+        } else {
+            // Método alternativo para HTTP
+            copyWithFallback(code, btn, text);
+        }
+    }
 
-            // Restaurar después de 2 segundos
-            setTimeout(() => {
-                text.textContent = 'Copiar Script';
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
-            }, 2000);
-        }).catch(err => {
-            alert('Error al copiar: ' + err);
-        });
+    // Método fallback compatible con HTTP
+    function copyWithFallback(text, btn, btnText) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showCopySuccess(btn, btnText);
+            } else {
+                alert('No se pudo copiar. Por favor, use el botón "Descargar como .txt"');
+            }
+        } catch (err) {
+            alert('No se pudo copiar. Por favor, use el botón "Descargar como .txt"');
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // Feedback visual al copiar
+    function showCopySuccess(btn, text) {
+        text.textContent = '¡Copiado!';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+
+        setTimeout(() => {
+            text.textContent = 'Copiar Script';
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-primary');
+        }, 2000);
     }
 
     // Descargar script como archivo .txt
