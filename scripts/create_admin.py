@@ -144,7 +144,7 @@ async def create_admin_user():
             print(f"  ID:        {user.id}")
             print("=" * 60)
             print()
-            print("Puedes iniciar sesión en: http://localhost:8000/web/login")
+            #print("Puedes iniciar sesión en: http://localhost:8000/web/login")
             print()
 
         except Exception as e:
